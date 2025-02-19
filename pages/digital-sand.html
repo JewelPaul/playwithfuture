@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Digital Sand Art - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            cursor: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        button {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #444;
+        }
+
+        #cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        #size-indicator {
+            position: fixed;
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div id="cursor"></div>
+    <div id="size-indicator"></div>
+    <canvas id="sandCanvas"></canvas>
+    <div id="controls">
+        <button onclick="changeColor('#FFD700')">Gold</button>
+        <button onclick="changeColor('#FF1493')">Pink</button>
+        <button onclick="changeColor('#00FF00')">Neon</button>
+        <button onclick="toggleGravity()">Toggle Gravity</button>
+        <button onclick="clearCanvas()">Clear</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('sandCanvas');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+        const sizeIndicator = document.getElementById('size-indicator');
+        
+        let mouseX = 0;
+        let mouseY = 0;
+        let isMouseDown = false;
+        let currentColor = '#FFD700';
+        let brushSize = 20;
+        let gravityEnabled = true;
+        let particles = [];
+
+        // Resize canvas to window size
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = 0;
+                this.size = 2;
+                this.life = 1;
+            }
+
+            update() {
+                if (gravityEnabled) {
+                    this.vy += 0.1; // Gravity
+                } else {
+                    this.vy *= 0.99; // Air resistance
+                    this.vx *= 0.99;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounce off walls
+                if (this.x < 0 || this.x > canvas.width) {
+                    this.vx *= -0.5;
+                }
+                if (this.y > canvas.height) {
+                    this.y = canvas.height;
+                    this.vy *= -0.5;
+                }
+
+                // Particle interaction
+                particles.forEach(p => {
+                    if (p !== this) {
+                        const dx = p.x - this.x;
+                        const dy = p.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < 5) {
+                            this.vx -= dx * 0.001;
+                            this.vy -= dy * 0.001;
+                        }
+                    }
+                });
+
+                this.life -= 0.001;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.life;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function addParticles(x, y) {
+            for (let i = 0; i < 5; i++) {
+                particles.push(new Particle(
+                    x + (Math.random() - 0.5) * brushSize,
+                    y + (Math.random() - 0.5) * brushSize,
+                    currentColor
+                ));
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (isMouseDown) {
+                addParticles(mouseX, mouseY);
+            }
+
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse interactions
+        canvas.addEventListener('mousedown', () => isMouseDown = true);
+        canvas.addEventListener('mouseup', () => isMouseDown = false);
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
+            sizeIndicator.style.left = mouseX + 'px';
+            sizeIndicator.style.top = mouseY + 'px';
+            sizeIndicator.style.width = brushSize * 2 + 'px';
+            sizeIndicator.style.height = brushSize * 2 + 'px';
+        });
+
+        // Wheel to change brush size
+        window.addEventListener('wheel', (e) => {
+            brushSize = Math.max(5, Math.min(50, brushSize - e.deltaY / 10));
+            sizeIndicator.style.width = brushSize * 2 + 'px';
+            sizeIndicator.style.height = brushSize * 2 + 'px';
+        });
+
+        function changeColor(color) {
+            currentColor = color;
+            cursor.style.borderColor = color;
+            sizeIndicator.style.borderColor = color;
+        }
+
+        function toggleGravity() {
+            gravityEnabled = !gravityEnabled;
+        }
+
+        function clearCanvas() {
+            particles = [];
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

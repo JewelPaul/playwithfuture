@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA Music Synthesizer - TimePassIndia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rubik:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/games/dna-synthesizer.css">
+</head>
+<body>
+
+    <div class="dna-container">
+        <canvas id="dnaCanvas"></canvas>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button id="playBtn" class="glow-btn">Play DNA</button>
+                <button id="mutateBtn" class="glow-btn">Mutate</button>
+                <button id="randomBtn" class="glow-btn">Random</button>
+            </div>
+            
+            <div class="control-group">
+                <div class="slider-container">
+                    <label>Rotation Speed</label>
+                    <input type="range" id="speedSlider" min="1" max="10" value="5">
+                </div>
+                <div class="slider-container">
+                    <label>Volume</label>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+                </div>
+            </div>
+            
+            <div class="base-pair-selector">
+                <div class="base-btn" data-base="A">A</div>
+                <div class="base-btn" data-base="T">T</div>
+                <div class="base-btn" data-base="G">G</div>
+                <div class="base-btn" data-base="C">C</div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="sequence">Sequence: <span id="sequenceDisplay">-</span></div>
+            <div class="current-note">Note: <span id="noteDisplay">-</span></div>
+        </div>
+
+        <a href="../index.html" class="home-button">Home</a>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="../scripts/utils/time.js"></script>
+    <script src="../scripts/games/dna-synthesizer.js"></script>
+</body>
+</html>

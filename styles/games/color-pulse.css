@@ -1,0 +1,89 @@
+/* Canvas Setup */
+canvas {
+    display: block;
+}
+
+/* Orbs Container */
+.orbs-container {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #00fff2;
+    border-radius: 15px;
+    z-index: 100;
+}
+
+/* Individual Orbs */
+.orb {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 0 20px currentColor;
+}
+
+.orb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px currentColor;
+}
+
+.orb:active {
+    transform: scale(0.9);
+    box-shadow: 0 0 40px currentColor;
+}
+
+/* Time Display Override */
+.time-display {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    color: #00fff2;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #00fff2;
+    border-radius: 5px;
+    z-index: 100;
+    text-shadow: 0 0 10px #00fff2;
+}
+
+/* Home Button Override */
+.home-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    padding: 12px 24px;
+    background: transparent;
+    color: #00fff2;
+    text-decoration: none;
+    border: 2px solid #00fff2;
+    border-radius: 5px;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+    z-index: 100;
+    text-shadow: 0 0 10px #00fff2;
+}
+
+.home-btn:hover {
+    background: #00fff2;
+    color: #000;
+    box-shadow: 0 0 20px #00fff2;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    .orbs-container {
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .orb {
+        width: 50px;
+        height: 50px;
+    }
+}

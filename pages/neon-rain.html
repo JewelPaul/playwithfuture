@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neon Rain - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            cursor: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            box-shadow: 0 0 20px #fff;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 100;
+        }
+
+        .color-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div id="cursor"></div>
+    <canvas id="rainCanvas"></canvas>
+    <div class="controls">
+        <button class="color-btn" data-color="rainbow">Rainbow</button>
+        <button class="color-btn" data-color="neon">Neon</button>
+        <button class="color-btn" data-color="fire">Fire</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('rainCanvas');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+        let mouseX = 0;
+        let mouseY = 0;
+        let colorMode = 'neon';
+
+        // Resize canvas to window size
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Raindrop class
+        class Raindrop {
+            constructor(x) {
+                this.reset(x);
+            }
+
+            reset(x) {
+                this.x = x || Math.random() * canvas.width;
+                this.y = -20;
+                this.speed = 2 + Math.random() * 5;
+                this.length = 10 + Math.random() * 20;
+                this.width = 1 + Math.random() * 2;
+                this.distance = Math.sqrt(
+                    Math.pow(this.x - mouseX, 2) + 
+                    Math.pow(this.y - mouseY, 2)
+                );
+            }
+
+            getColor() {
+                switch(colorMode) {
+                    case 'rainbow':
+                        return `hsl(${(this.y + this.x) % 360}, 100%, 50%)`;
+                    case 'fire':
+                        return `hsl(${Math.max(0, Math.min(60, this.distance/5))}, 100%, 50%)`;
+                    default: // neon
+                        const distanceColor = Math.max(0, 255 - this.distance);
+                        return `rgb(0, ${distanceColor}, ${distanceColor})`;
+                }
+            }
+
+            update() {
+                this.y += this.speed;
+                this.distance = Math.sqrt(
+                    Math.pow(this.x - mouseX, 2) + 
+                    Math.pow(this.y - mouseY, 2)
+                );
+
+                // Attract towards mouse
+                if (this.distance < 200) {
+                    const angle = Math.atan2(mouseY - this.y, mouseX - this.x);
+                    this.x += Math.cos(angle) * (1 - this.distance/200) * 5;
+                    this.speed += (1 - this.distance/200) * 0.2;
+                }
+
+                if (this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.strokeStyle = this.getColor();
+                ctx.lineWidth = this.width;
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x, this.y + this.length);
+                ctx.stroke();
+            }
+        }
+
+        // Create raindrops
+        const drops = Array(100).fill().map(() => new Raindrop());
+
+        // Animation loop
+        function animate() {
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drops.forEach(drop => {
+                drop.update();
+                drop.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse tracking
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
+        });
+
+        // Color mode buttons
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                colorMode = btn.dataset.color;
+            });
+        });
+
+        animate();
+    </script>
+</body>
+</html>

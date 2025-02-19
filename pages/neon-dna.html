@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon DNA - TimePassIndia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/games/neon-dna.css">
+</head>
+<body>
+    <div class="time-overlay" id="timeDisplay">2025-02-06 16:15:56</div>
+    
+    <canvas id="dnaCanvas"></canvas>
+    
+    <div class="controls">
+        <button id="resetBtn">Reset</button>
+        <div class="sliders">
+            <div class="slider-group">
+                <label>Rotation Speed</label>
+                <input type="range" id="speedSlider" min="0" max="100" value="50">
+            </div>
+            <div class="slider-group">
+                <label>Strand Count</label>
+                <input type="range" id="strandSlider" min="1" max="5" value="2">
+            </div>
+            <div class="slider-group">
+                <label>Glow Intensity</label>
+                <input type="range" id="glowSlider" min="0" max="100" value="70">
+            </div>
+        </div>
+    </div>
+
+    <div class="color-controls">
+        <button class="color-btn" data-color="#00fff2">Cyan</button>
+        <button class="color-btn" data-color="#ff00ff">Magenta</button>
+        <button class="color-btn" data-color="#00ff88">Green</button>
+        <button class="color-btn" data-color="#ff3366">Pink</button>
+    </div>
+
+    <a href="../index.html" class="home-button">Home</a>
+
+    <script src="../scripts/utils/time.js"></script>
+    <script src="../scripts/games/neon-dna.js"></script>
+</body>
+</html>

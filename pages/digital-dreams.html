@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Digital Dreams - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            cursor: none;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            transition: filter 0.5s;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 15px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 100;
+        }
+
+        body:hover .controls {
+            opacity: 1;
+            cursor: default;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: Arial, sans-serif;
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .active {
+            background: rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="controls">
+        <button class="btn active" onclick="setMode('flow')">Flow</button>
+        <button class="btn" onclick="setMode('spark')">Spark</button>
+        <button class="btn" onclick="setMode('wave')">Wave</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mode = 'flow';
+        let isFullscreen = false;
+        let mouseX = 0;
+        let mouseY = 0;
+        let hue = 0;
+
+        function setFullscreen() {
+            if (!isFullscreen) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                }
+                isFullscreen = true;
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                isFullscreen = false;
+            }
+            updateCanvasSize();
+        }
+
+        function updateCanvasSize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        updateCanvasSize();
+
+        window.addEventListener('resize', updateCanvasSize);
+        window.addEventListener('dblclick', setFullscreen);
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 3 + 2;
+                this.speedX = Math.random() * 4 - 2;
+                this.speedY = Math.random() * 4 - 2;
+                this.hue = hue;
+                this.life = 1;
+                this.gravity = Math.random() * 0.2 - 0.1;
+                this.angle = Math.random() * Math.PI * 2;
+                this.orbitRadius = Math.random() * 100 + 50;
+                this.orbitSpeed = Math.random() * 0.02 + 0.01;
+            }
+
+            update() {
+                switch(mode) {
+                    case 'flow':
+                        this.angle += this.orbitSpeed;
+                        this.x += Math.cos(this.angle) * 2;
+                        this.y += Math.sin(this.angle) * 2 - 1;
+                        this.life -= 0.007;
+                        break;
+
+                    case 'spark':
+                        this.speedX *= 0.99;
+                        this.speedY *= 0.99;
+                        this.x += this.speedX;
+                        this.y += this.speedY;
+                        this.life -= 0.01;
+                        break;
+
+                    case 'wave':
+                        this.x += Math.cos(this.angle) * 3;
+                        this.y += Math.sin(this.angle) * 3;
+                        this.angle += 0.02;
+                        this.life -= 0.005;
+                        break;
+                }
+
+                if (this.y > canvas.height) this.y = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.x < 0) this.x = canvas.width;
+
+                return this.life > 0;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.size * 2
+                );
+
+                const alpha = this.life * 0.5;
+                gradient.addColorStop(0, `hsla(${this.hue}, 100%, 50%, ${alpha})`);
+                gradient.addColorStop(1, `hsla(${this.hue}, 100%, 50%, 0)`);
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            for(let i = 0; i < 2; i++) {
+                particles.push(new Particle(mouseX, mouseY));
+            }
+        });
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles = particles.filter(particle => particle.update());
+            particles.forEach(particle => particle.draw());
+
+            if (particles.length < 100) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height
+                ));
+            }
+
+            hue = (hue + 0.5) % 360;
+            requestAnimationFrame(animate);
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+            particles = [];
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === mode);
+            });
+        }
+
+        animate();
+    </script>
+</body>
+</html>

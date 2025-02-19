@@ -1,0 +1,231 @@
+/* Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+body {
+  background-color: #0d0d0d;
+  color: #ffffff;
+  font-family: 'Roboto', sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* HEADER */
+header {
+  background: linear-gradient(45deg, #ff00ff, #00ffff);
+  padding: 25px;
+  box-shadow: 0 0 20px #ff00ff;
+  text-shadow: 0 0 10px #ffffff;
+}
+
+header h1 {
+  font-size: 3em;
+  text-transform: uppercase;
+  animation: glow 1.5s infinite alternate;
+}
+
+header p {
+  font-size: 1.2em;
+  margin-top: 5px;
+}
+
+/* HERO SECTION */
+#hero {
+  padding: 40px 20px;
+  text-shadow: 0 0 10px #ff00ff;
+}
+
+#hero h2 {
+  font-size: 2.2em;
+  color: #00ffff;
+}
+
+#hero p {
+  font-size: 1.1em;
+  margin-bottom: 20px;
+}
+
+button {
+  background: #ff00ff;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  font-size: 1.2em;
+  cursor: pointer;
+  box-shadow: 0 0 10px #ff00ff;
+  transition: 0.3s ease-in-out;
+}
+
+button:hover {
+  background: #00ffff;
+  box-shadow: 0 0 20px #00ffff;
+}
+
+/* GRID */
+#interactive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.grid-item {
+  background-color: rgba(34, 34, 34, 0.8);
+  padding: 20px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #00ffff;
+  font-weight: bold;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 10px #ff00ff;
+  position: relative;
+  overflow: hidden;
+}
+
+.grid-item:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px #ffffff;
+}
+
+/* WRITEUPS SECTION */
+#writeups {
+  padding: 20px;
+  background-color: #222;
+  color: #ffffff;
+  text-align: left;
+}
+
+#writeups h2 {
+  text-align: center;
+  color: #00ffff;
+  margin-bottom: 20px;
+}
+
+.writeup {
+  margin-bottom: 20px;
+}
+
+.writeup h3 {
+  color: #ff00ff;
+}
+
+.writeup p {
+  font-size: 1em;
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  margin-top: 20px;
+  padding: 15px;
+  background: #222;
+  font-size: 0.9em;
+}
+
+footer a {
+  color: #00ffff;
+  text-decoration: none;
+  margin: 0 10px;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* NEON ANIMATIONS */
+@keyframes glow {
+  0% { text-shadow: 0 0 10px #ff00ff; }
+  100% { text-shadow: 0 0 20px #00ffff; }
+}
+
+/* MEDIA QUERIES */
+@media (max-width: 768px) {
+  header h1 {
+    font-size: 2em;
+  }
+
+  header p {
+    font-size: 1em;
+  }
+
+  #hero h2 {
+    font-size: 1.8em;
+  }
+
+  #hero p {
+    font-size: 1em;
+  }
+
+  button {
+    padding: 10px 15px;
+    font-size: 1em;
+  }
+
+  #interactive-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .grid-item {
+    padding: 15px;
+  }
+
+  #writeups {
+    padding: 10px;
+  }
+
+  .writeup p {
+    font-size: 0.9em;
+  }
+
+  footer {
+    font-size: 0.8em;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.5em;
+  }
+
+  header p {
+    font-size: 0.9em;
+  }
+
+  #hero h2 {
+    font-size: 1.5em;
+  }
+
+  #hero p {
+    font-size: 0.9em;
+  }
+
+  button {
+    padding: 8px 12px;
+    font-size: 0.9em;
+  }
+
+  #interactive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-item {
+    padding: 10px;
+  }
+
+  #writeups h2 {
+    font-size: 1.5em;
+  }
+
+  .writeup h3 {
+    font-size: 1.2em;
+  }
+
+  .writeup p {
+    font-size: 0.8em;
+  }
+
+  footer {
+    font-size: 0.7em;
+  }
+}

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pattern IQ - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        body {
+            background: #f8f9fc;
+            color: #2c3e50;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #1a237e;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #546e7a;
+            font-size: 1.1rem;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #546e7a;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1a237e;
+            margin-top: 0.5rem;
+        }
+
+        .game-board {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+
+        .pattern-display {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .sequence {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #1a237e;
+            letter-spacing: 2px;
+            margin: 1rem 0;
+        }
+
+        .sequence span {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            background: #f5f7ff;
+            border-radius: 8px;
+            min-width: 80px;
+        }
+
+        .question-mark {
+            color: #e91e63;
+            font-weight: bold;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .option-btn {
+            padding: 1rem;
+            font-size: 1.3rem;
+            border: 2px solid #e3e8f0;
+            border-radius: 8px;
+            background: white;
+            color: #1a237e;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .option-btn:hover {
+            background: #f5f7ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #e3e8f0;
+        }
+
+        .hint-btn {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            background: #f5f7ff;
+            color: #1a237e;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .hint-btn:hover {
+            background: #e8eeff;
+        }
+
+        .timer-display {
+            font-size: 1.2rem;
+            color: #546e7a;
+        }
+
+        .hint-text {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #fff8e1;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            color: #795548;
+            display: none;
+        }
+
+        .feedback {
+            text-align: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feedback.correct {
+            background: #e8f5e9;
+            color: #2e7d32;
+            opacity: 1;
+        }
+
+        .feedback.incorrect {
+            background: #ffebee;
+            color: #c62828;
+            opacity: 1;
+        }
+
+        .mode-toggle {
+            padding: 0.8rem 1.5rem;
+            border: 2px solid #1a237e;
+            border-radius: 6px;
+            background: white;
+            color: #1a237e;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .mode-toggle:hover {
+            background: #1a237e;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        .correct-answer {
+            animation: pulse 0.5s ease;
+            background: #e8f5e9 !important;
+            border-color: #4caf50;
+        }
+
+        .level-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .level-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e3e8f0;
+        }
+
+        .level-dot.active {
+            background: #1a237e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Pattern IQ</h1>
+            <p>Analyze and predict the next number in each sequence</p>
+            <button class="mode-toggle" id="modeToggle">Switch to Practice Mode</button>
+        </div>
+
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-label">Score</div>
+                <div class="stat-value" id="score">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Level</div>
+                <div class="stat-value" id="level">1</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Accuracy</div>
+                <div class="stat-value" id="accuracy">100%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Time</div>
+                <div class="stat-value" id="timer">120</div>
+            </div>
+        </div>
+
+        <div class="game-board">
+            <div class="level-indicator" id="levelDots"></div>
+            
+            <div class="pattern-display">
+                <div class="sequence" id="sequence"></div>
+            </div>
+
+            <div class="hint-text" id="hintText"></div>
+            
+            <div class="feedback" id="feedback"></div>
+            
+            <div class="options-grid" id="options"></div>
+
+            <div class="controls">
+                <button class="hint-btn" id="hintBtn">Show Hint</button>
+                <div class="timer-display" id="timerDisplay"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // More sophisticated patterns with clear progression
+        const patterns = [
+            {
+                sequence: [2, 4, 6, 8],
+                next: 10,
+                rule: "Linear progression: Add 2",
+                hint: "Look for a constant difference between consecutive numbers",
+                difficulty: 1
+            },
+            {
+                sequence: [3, 6, 9, 12],
+                next: 15,
+                rule: "Linear progression: Add 3",
+                hint: "Each number increases by the same amount",
+                difficulty: 1
+            },
+            {
+                sequence: [2, 4, 8, 16],
+                next: 32,
+                rule: "Geometric progression: Multiply by 2",
+                hint: "Each number is doubled",
+                difficulty: 2
+            },
+            {
+                sequence: [1, 3, 6, 10],
+                next: 15,
+                rule: "Triangular numbers: Add increasing numbers (1,2,3,4...)",
+                hint: "The difference between numbers increases by 1 each time",
+                difficulty: 2
+            },
+            {
+                sequence: [1, 4, 9, 16],
+                next: 25,
+                rule: "Square numbers: 1², 2², 3², 4², 5²",
+                hint: "Think about square numbers",
+                difficulty: 3
+            },
+            {
+                sequence: [2, 6, 12, 20],
+                next: 30,
+                rule: "Add increasing even numbers: +4, +6, +8, +10",
+                hint: "The amount added increases by 2 each time",
+                difficulty: 3
+            },
+            {
+                sequence: [1, 3, 7, 15],
+                next: 31,
+                rule: "Double previous number and add 1",
+                hint: "Take each number, multiply by 2, then add 1",
+                difficulty: 4
+            }
+        ];
+
+        // Game state
+        let gameState = {
+            score: 0,
+            level: 1,
+            attempts: 0,
+            correct: 0,
+            currentPattern: 0,
+            timeLeft: 120,
+            isPracticeMode: false,
+            interval: null
+        };
+
+        // Initialize game
+        function initGame() {
+            updateStats();
+            showPattern();
+            startTimer();
+            updateLevelDots();
+        }
+
+        // Show current pattern
+        function showPattern() {
+            const pattern = patterns[gameState.currentPattern];
+            const sequence = document.getElementById('sequence');
+            sequence.innerHTML = pattern.sequence.map(num => 
+                `<span>${num}</span>`).join(' → ') + ' → <span class="question-mark">?</span>';
+            
+            generateOptions(pattern.next);
+        }
+
+        // Generate options
+        function generateOptions(correct) {
+            const options = [correct];
+            while(options.length < 4) {
+                const variation = Math.random() > 0.5 ? 
+                    correct * (1 + Math.random() * 0.3) : 
+                    correct * (1 - Math.random() * 0.3);
+                const wrong = Math.round(variation);
+                if(!options.includes(wrong) && wrong > 0) {
+                    options.push(wrong);
+                }
+            }
+
+            options.sort(() => Math.random() - 0.5);
+
+            const optionsGrid = document.getElementById('options');
+            optionsGrid.innerHTML = options.map(option => 
+                `<button class="option-btn" onclick="checkAnswer(${option}, ${correct})">${option}</button>`
+            ).join('');
+        }
+
+        // Check answer
+        function checkAnswer(selected, correct) {
+            const feedback = document.getElementById('feedback');
+            if(selected === correct) {
+                gameState.score += 10 * (gameState.level);
+                gameState.correct++;
+                feedback.textContent = 'Correct! Well done!';
+                feedback.className = 'feedback correct';
+                
+                if(!gameState.isPracticeMode) {
+                    gameState.timeLeft = Math.min(gameState.timeLeft + 30, 120);
+                }
+
+                setTimeout(() => {
+                    nextPattern();
+                }, 1000);
+            } else {
+                gameState.attempts++;
+                feedback.textContent = 'Try again!';
+                feedback.className = 'feedback incorrect';
+            }
+            updateStats();
+        }
+
+        // Move to next pattern
+        function nextPattern() {
+            gameState.currentPattern = (gameState.currentPattern + 1) % patterns.length;
+            if(gameState.currentPattern === 0) {
+                gameState.level++;
+            }
+            showPattern();
+            document.getElementById('feedback').className = 'feedback';
+            updateLevelDots();
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('level').textContent = gameState.level;
+            document.getElementById('accuracy').textContent = 
+                Math.round((gameState.correct / Math.max(1, gameState.attempts)) * 100) + '%';
+        }
+
+        // Timer functionality
+        function startTimer() {
+            if(gameState.interval) clearInterval(gameState.interval);
+            if(!gameState.isPracticeMode) {
+                gameState.interval = setInterval(() => {
+                    gameState.timeLeft--;
+                    document.getElementById('timer').textContent = gameState.timeLeft;
+                    if(gameState.timeLeft <= 0) endGame();
+                }, 1000);
+            }
+        }
+
+        // Toggle game mode
+        document.getElementById('modeToggle').addEventListener('click', () => {
+            gameState.isPracticeMode = !gameState.isPracticeMode;
+            document.getElementById('modeToggle').textContent = 
+                gameState.isPracticeMode ? 'Switch to Timed Mode' : 'Switch to Practice Mode';
+            if(gameState.isPracticeMode) {
+                clearInterval(gameState.interval);
+                document.getElementById('timer').parentElement.style.display = 'none';
+            } else {
+                document.getElementById('timer').parentElement.style.display = 'block';
+                gameState.timeLeft = 120;
+                startTimer();
+            }
+        });
+
+        // Show hint
+        document.getElementById('hintBtn').addEventListener('click', () => {
+            const hintText = document.getElementById('hintText');
+            hintText.textContent = patterns[gameState.currentPattern].hint;
+            hintText.style.display = 'block';
+            setTimeout(() => {
+                hintText.style.display = 'none';
+            }, 5000);
+        });
+
+        // Update level indicator
+        function updateLevelDots() {
+            const dots = document.getElementById('levelDots');
+            dots.innerHTML = patterns.map((_, index) => 
+                `<div class="level-dot ${index === gameState.currentPattern ? 'active' : ''}"></div>`
+            ).join('');
+        }
+
+        // Initialize the game
+        initGame();
+    </script>
+</body>
+</html>

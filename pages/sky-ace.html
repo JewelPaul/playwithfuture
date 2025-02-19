@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sky Ace - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            background: #0f0f1a;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        #gameWrapper {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hud {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+            pointer-events: none;
+            font-size: calc(16px + 1vw);
+        }
+
+        .hud-item {
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .control-btn:active {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .menu {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-height: 500px) {
+            .controls {
+                bottom: 10px;
+            }
+            .control-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameWrapper">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div class="hud">
+            <div class="hud-item">Score: <span id="score">0</span></div>
+            <div class="hud-item">Best: <span id="highScore">0</span></div>
+        </div>
+
+        <div class="controls">
+            <div class="control-btn" id="leftBtn">←</div>
+            <div class="control-btn" id="upBtn">↑</div>
+            <div class="control-btn" id="rightBtn">→</div>
+        </div>
+
+        <div id="startScreen" class="overlay">
+            <div class="menu">
+                <h1>SKY ACE</h1>
+                <button class="btn" id="startBtn">START</button>
+            </div>
+        </div>
+
+        <div id="gameOverScreen" class="overlay hidden">
+            <div class="menu">
+                <h1>GAME OVER</h1>
+                <div id="finalScore">0</div>
+                <button class="btn" id="restartBtn">TRY AGAIN</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let score = 0;
+        let highScore = 0;
+        let gameActive = false;
+
+        const controls = {
+            up: false,
+            left: false,
+            right: false
+        };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth * devicePixelRatio;
+            canvas.height = window.innerHeight * devicePixelRatio;
+            ctx.scale(devicePixelRatio, devicePixelRatio);
+        }
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const plane = {
+            x: window.innerWidth * 0.2,
+            y: window.innerHeight / 2,
+            width: 50,
+            height: 30,
+            speed: 5,
+            dx: 0,
+            dy: 0,
+            rotation: 0
+        };
+
+        const obstacles = [];
+        
+        function createObstacle() {
+            const gap = window.innerHeight * 0.35;
+            const topHeight = Math.random() * (window.innerHeight - gap - 100) + 50;
+            
+            obstacles.push({
+                x: window.innerWidth,
+                y: 0,
+                width: 60,
+                topHeight: topHeight,
+                bottomY: topHeight + gap,
+                bottomHeight: window.innerHeight - (topHeight + gap),
+                passed: false
+            });
+        }
+
+        // Control handlers
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') controls.up = true;
+            if (e.key === 'ArrowLeft') controls.left = true;
+            if (e.key === 'ArrowRight') controls.right = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp') controls.up = false;
+            if (e.key === 'ArrowLeft') controls.left = false;
+            if (e.key === 'ArrowRight') controls.right = false;
+        });
+
+        ['up', 'left', 'right'].forEach(dir => {
+            const btn = document.getElementById(`${dir}Btn`);
+            btn.addEventListener('touchstart', () => controls[dir] = true);
+            btn.addEventListener('touchend', () => controls[dir] = false);
+            btn.addEventListener('mousedown', () => controls[dir] = true);
+            btn.addEventListener('mouseup', () => controls[dir] = false);
+            btn.addEventListener('mouseleave', () => controls[dir] = false);
+        });
+
+        function update() {
+            if (!gameActive) return;
+
+            if (controls.up) {
+                plane.dy = Math.max(plane.dy - 0.5, -8);
+            } else {
+                plane.dy = Math.min(plane.dy + 0.3, 8);
+            }
+            
+            if (controls.left) {
+                plane.dx = Math.max(plane.dx - 0.5, -6);
+                plane.rotation = Math.max(plane.rotation - 0.1, -0.3);
+            } else if (controls.right) {
+                plane.dx = Math.min(plane.dx + 0.5, 6);
+                plane.rotation = Math.min(plane.rotation + 0.1, 0.3);
+            } else {
+                plane.dx *= 0.95;
+                plane.rotation *= 0.9;
+            }
+            
+            plane.x += plane.dx;
+            plane.y += plane.dy;
+
+            plane.x = Math.max(plane.width, Math.min(plane.x, window.innerWidth - plane.width));
+            if (plane.y < 0 || plane.y > window.innerHeight) {
+                gameOver();
+            }
+
+            if (obstacles.length === 0 || 
+                obstacles[obstacles.length - 1].x < window.innerWidth - 300) {
+                createObstacle();
+            }
+
+            obstacles.forEach((obstacle, index) => {
+                obstacle.x -= 4;
+
+                if (plane.x < obstacle.x + obstacle.width &&
+                    plane.x + plane.width > obstacle.x &&
+                    (plane.y < obstacle.topHeight ||
+                     plane.y + plane.height > obstacle.bottomY)) {
+                    gameOver();
+                }
+
+                if (!obstacle.passed && plane.x > obstacle.x + obstacle.width) {
+                    score += 10;
+                    document.getElementById('score').textContent = score;
+                    obstacle.passed = true;
+                }
+
+                if (obstacle.x + obstacle.width < 0) {
+                    obstacles.splice(index, 1);
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#1a1b4b');
+            gradient.addColorStop(1, '#4b1a1a');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            obstacles.forEach(obstacle => {
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(obstacle.x, 0, obstacle.width, obstacle.topHeight);
+                ctx.fillRect(obstacle.x, obstacle.bottomY, 
+                           obstacle.width, obstacle.bottomHeight);
+            });
+
+            ctx.save();
+            ctx.translate(plane.x, plane.y);
+            ctx.rotate(plane.rotation);
+            
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.moveTo(-plane.width/2, 0);
+            ctx.lineTo(plane.width/2, -plane.height/2);
+            ctx.lineTo(plane.width/2, plane.height/2);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = '#ddd';
+            ctx.fillRect(-plane.width/4, -plane.height, plane.width/2, plane.height/2);
+
+            ctx.restore();
+
+            if (controls.up) {
+                ctx.fillStyle = 'rgba(255,100,0,0.5)';
+                for (let i = 0; i < 5; i++) {
+                    ctx.beginPath();
+                    ctx.arc(
+                        plane.x - plane.width/2 - Math.random() * 20,
+                        plane.y,
+                        Math.random() * 5,
+                        0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+            }
+
+            update();
+            if (gameActive) {
+                requestAnimationFrame(draw);
+            }
+        }
+
+        function gameOver() {
+            gameActive = false;
+            if (score > highScore) {
+                highScore = score;
+                document.getElementById('highScore').textContent = highScore;
+            }
+            document.getElementById('finalScore').textContent = `Score: ${score}`;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+
+        function startGame() {
+            plane.x = window.innerWidth * 0.2;
+            plane.y = window.innerHeight / 2;
+            plane.dx = 0;
+            plane.dy = 0;
+            plane.rotation = 0;
+            obstacles.length = 0;
+            score = 0;
+            document.getElementById('score').textContent = '0';
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            gameActive = true;
+            draw();
+        }
+
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', startGame);
+        draw();
+    </script>
+</body>
+</html>

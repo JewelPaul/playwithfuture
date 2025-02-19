@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Microphone Visualizer - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        #startBtn {
+            padding: 20px 40px;
+            font-size: 24px;
+            background: #000;
+            color: #0f0;
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            cursor: pointer;
+            z-index: 100;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <button id="startBtn">Click to Start Microphone</button>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const startBtn = document.getElementById('startBtn');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        let audioContext;
+        let analyser;
+        let dataArray;
+        let isRunning = false;
+        let centerX = canvas.width / 2;
+        let centerY = canvas.height / 2;
+
+        startBtn.addEventListener('click', async () => {
+            if (isRunning) return;
+            
+            try {
+                // Initialize audio context and get microphone access
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Set up audio analyzer
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                
+                // Configure analyzer
+                analyser.fftSize = 512;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                
+                // Hide button and start animation
+                startBtn.style.display = 'none';
+                isRunning = true;
+                animate();
+                
+            } catch (error) {
+                console.error('Error accessing microphone:', error);
+                alert('Please allow microphone access to use the visualizer');
+            }
+        });
+
+        let hue = 0;
+        function animate() {
+            if (!isRunning) return;
+
+            // Clear canvas with fade effect
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Get audio data
+            analyser.getByteFrequencyData(dataArray);
+
+            // Calculate average volume
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            const average = sum / dataArray.length;
+
+            // Draw circular visualizer
+            const radius = 100 + average;
+            ctx.beginPath();
+            ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                const value = dataArray[i];
+                const angle = (i / dataArray.length) * Math.PI * 2;
+                
+                // Inner circle
+                const x1 = centerX + Math.cos(angle) * radius;
+                const y1 = centerY + Math.sin(angle) * radius;
+                
+                // Outer circle (affected by frequency)
+                const x2 = centerX + Math.cos(angle) * (radius + value);
+                const y2 = centerY + Math.sin(angle) * (radius + value);
+                
+                // Draw line from inner to outer circle
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = `hsl(${hue + i}, 100%, 50%)`;
+                ctx.stroke();
+
+                // Draw particles for high frequencies
+                if (value > 100) {
+                    ctx.fillStyle = `hsl(${hue + i}, 100%, 50%)`;
+                    ctx.beginPath();
+                    ctx.arc(x2, y2, value/20, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Update hue for color cycling
+            hue = (hue + 1) % 360;
+
+            requestAnimationFrame(animate);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            centerX = canvas.width / 2;
+            centerY = canvas.height / 2;
+        });
+    </script>
+</body>
+</html>

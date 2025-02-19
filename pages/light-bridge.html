@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light Flow - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: #0a0a2a;
+            overflow: hidden;
+            color: white;
+        }
+
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .time-display {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+
+        .score-display {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 1.5rem;
+            color: #fff;
+            z-index: 100;
+        }
+
+        .instructions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            text-align: center;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="timeDisplay" class="time-display"></div>
+    <div class="score-display">Score: <span id="score">0</span></div>
+    <div class="instructions">Click and drag to create light paths. Guide the particles to score!</div>
+    <a href="../index.html" class="home-btn">HOME</a>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let paths = [];
+        let particles = [];
+        let isDrawing = false;
+        let currentPath = [];
+
+        // Time display - clean format only
+        function updateTime() {
+            const now = new Date();
+            const formatted = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + ' ' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0') + ':' +
+                String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('timeDisplay').textContent = formatted;
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = 0;
+                this.y = Math.random() * canvas.height;
+                this.vx = 2 + Math.random() * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.radius = 3;
+                this.color = `hsl(${Math.random() * 60 + 180}, 100%, 50%)`;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Natural floating effect
+                this.vy += (Math.random() - 0.5) * 0.1;
+
+                // Path interaction
+                paths.forEach(path => {
+                    if (path.length > 1) {
+                        for (let i = 1; i < path.length; i++) {
+                            const start = path[i - 1];
+                            const end = path[i];
+                            
+                            // Check if particle is near the path segment
+                            const dx = end.x - start.x;
+                            const dy = end.y - start.y;
+                            const t = ((this.x - start.x) * dx + (this.y - start.y) * dy) /
+                                    (dx * dx + dy * dy);
+
+                            if (t >= 0 && t <= 1) {
+                                const closestX = start.x + t * dx;
+                                const closestY = start.y + t * dy;
+                                const distance = Math.sqrt(
+                                    (this.x - closestX) * (this.x - closestX) +
+                                    (this.y - closestY) * (this.y - closestY)
+                                );
+
+                                if (distance < 50) {
+                                    // Attract particle to path
+                                    const force = (50 - distance) / 50;
+                                    this.vy += (closestY - this.y) * force * 0.05;
+                                    this.vx += (closestX - this.x) * force * 0.05;
+                                    
+                                    // Score when particle follows path
+                                    if (distance < 10 && Math.random() < 0.1) {
+                                        score++;
+                                        document.getElementById('score').textContent = score;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Speed limits
+                this.vx = Math.min(Math.max(this.vx, 1), 5);
+                this.vy = Math.min(Math.max(this.vy, -3), 3);
+
+                // Boundary checks
+                if (this.y < 0) this.y = 0;
+                if (this.y > canvas.height) this.y = canvas.height;
+
+                // Reset if off screen right
+                if (this.x > canvas.width) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                // Glow effect
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Create particles
+        for (let i = 0; i < 50; i++) {
+            particles.push(new Particle());
+        }
+
+        function drawPath(path) {
+            if (path.length < 2) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(path[0].x, path[0].y);
+            
+            for (let i = 1; i < path.length; i++) {
+                ctx.lineTo(path[i].x, path[i].y);
+            }
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // Glow effect
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#ffffff';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(10, 10, 42, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw all paths
+            paths.forEach(path => drawPath(path));
+            
+            // Draw current path
+            if (isDrawing) {
+                drawPath(currentPath);
+            }
+
+            // Update and draw particles
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse/Touch events
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            currentPath = [{x: e.clientX, y: e.clientY}];
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                currentPath.push({x: e.clientX, y: e.clientY});
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (currentPath.length > 1) {
+                paths.push(currentPath);
+                if (paths.length > 3) {
+                    paths.shift(); // Remove oldest path
+                }
+            }
+            isDrawing = false;
+        });
+
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            isDrawing = true;
+            currentPath = [{x: touch.clientX, y: touch.clientY}];
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isDrawing) {
+                const touch = e.touches[0];
+                currentPath.push({x: touch.clientX, y: touch.clientY});
+            }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (currentPath.length > 1) {
+                paths.push(currentPath);
+                if (paths.length > 3) {
+                    paths.shift();
+                }
+            }
+            isDrawing = false;
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Start game
+        setInterval(updateTime, 1000);
+        updateTime();
+        animate();
+    </script>
+</body>
+</html>

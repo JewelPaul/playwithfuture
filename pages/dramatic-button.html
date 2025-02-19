@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Most Dramatic Button - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: monospace;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #timeDisplay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #39ff14;
+            font-size: 24px;
+            z-index: 1000;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        #button-container {
+            position: relative;
+            z-index: 100;
+            margin-bottom: 100px;
+        }
+
+        #dramatic-button {
+            font-size: 40px;
+            padding: 20px 40px;
+            border: 3px solid #ff0000;
+            background: #000;
+            color: #ff0000;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.3s ease;
+        }
+
+        #dramatic-button:hover {
+            background: #200000;
+            transform: scale(1.05);
+        }
+
+        #dramatic-text {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 50px;
+            color: #ff0000;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            text-shadow: 0 0 10px #ff0000;
+            white-space: nowrap;
+        }
+
+        .explosion {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 90;
+            animation: explode 0.5s forwards;
+        }
+
+        .dramatic-particle {
+            position: fixed;
+            pointer-events: none;
+            font-size: 24px;
+            z-index: 95;
+        }
+
+        .screen-shake {
+            animation: screenShake 0.5s;
+        }
+
+        @keyframes explode {
+            0% { background: transparent; }
+            50% { background: rgba(255, 0, 0, 0.4); }
+            100% { background: transparent; }
+        }
+
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0); }
+            25% { transform: translate(-10px, 10px); }
+            50% { transform: translate(10px, -10px); }
+            75% { transform: translate(-10px, -10px); }
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) rotate(var(--tr));
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="timeDisplay"></div>
+    <div id="button-container">
+        <button id="dramatic-button">DO NOT PRESS</button>
+    </div>
+    <div id="dramatic-text"></div>
+
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('timeDisplay').textContent = timeStr;
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        class DramaticButton {
+            constructor() {
+                this.button = document.getElementById('dramatic-button');
+                this.dramaticText = document.getElementById('dramatic-text');
+                this.pressCount = 0;
+                this.texts = [
+                    "I TOLD YOU NOT TO!",
+                    "WHY DID YOU DO THAT?!",
+                    "OH NO OH NO OH NO!",
+                    "WHAT HAVE YOU DONE?!",
+                    "RUN FOR YOUR LIFE!",
+                    "THIS IS THE END!",
+                    "AAAAAAAAAAHHHHH!",
+                    "💀💀💀"
+                ];
+                this.emojis = ['💥', '🔥', '⚡', '💀', '👻', '😱', '🙀', '😨', '🌋', '☠️'];
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.button.addEventListener('click', () => this.handleClick());
+            }
+
+            handleClick() {
+                this.pressCount++;
+                this.createExplosion();
+                this.showDramaticText();
+                this.createParticles();
+                this.shakeScreen();
+                
+                if (this.pressCount >= 5) {
+                    this.triggerChaos();
+                }
+            }
+
+            createExplosion() {
+                const explosion = document.createElement('div');
+                explosion.className = 'explosion';
+                document.body.appendChild(explosion);
+                setTimeout(() => explosion.remove(), 500);
+            }
+
+            showDramaticText() {
+                const text = this.texts[Math.floor(Math.random() * this.texts.length)];
+                this.dramaticText.style.opacity = '1';
+                this.dramaticText.textContent = text;
+                this.dramaticText.style.color = this.getRandomColor();
+                setTimeout(() => this.dramaticText.style.opacity = '0', 1000);
+            }
+
+            createParticles() {
+                for (let i = 0; i < 20; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'dramatic-particle';
+                    particle.textContent = this.emojis[Math.floor(Math.random() * this.emojis.length)];
+                    
+                    const buttonRect = this.button.getBoundingClientRect();
+                    particle.style.left = `${buttonRect.left + buttonRect.width/2}px`;
+                    particle.style.top = `${buttonRect.top + buttonRect.height/2}px`;
+                    
+                    const tx = (Math.random() - 0.5) * 500;
+                    const ty = (Math.random() - 0.5) * 500;
+                    const tr = Math.random() * 1000;
+                    
+                    particle.style.setProperty('--tx', `${tx}px`);
+                    particle.style.setProperty('--ty', `${ty}px`);
+                    particle.style.setProperty('--tr', `${tr}deg`);
+                    particle.style.animation = 'float 2s forwards';
+                    
+                    document.body.appendChild(particle);
+                    setTimeout(() => particle.remove(), 2000);
+                }
+            }
+
+            shakeScreen() {
+                document.body.classList.add('screen-shake');
+                setTimeout(() => document.body.classList.remove('screen-shake'), 500);
+            }
+
+            triggerChaos() {
+                this.button.style.transform = 'scale(2)';
+                document.body.style.background = this.getRandomColor();
+                setInterval(() => {
+                    document.body.style.background = this.getRandomColor();
+                }, 100);
+            }
+
+            getRandomColor() {
+                return `hsl(${Math.random() * 360}, 100%, 50%)`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new DramaticButton();
+        });
+    </script>
+</body>
+</html>

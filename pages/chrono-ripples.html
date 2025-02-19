@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrono Ripples - TimePassIndia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rubik:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/games/chrono-ripples.css">
+</head>
+<body>
+    <div class="time-overlay" id="timeDisplay"></div>
+    <canvas id="rippleCanvas"></canvas>
+    <div class="ripple-controls">
+        <button id="autoBtn">Auto Ripple</button>
+        <button id="clearBtn">Clear</button>
+    </div>
+    <a href="../index.html" class="home-button">Home</a>
+
+    <div class="ad-space ad-top"></div>
+    <div class="ad-space ad-bottom"></div>
+    <div class="ad-space ad-left"></div>
+    <div class="ad-space ad-right"></div>
+
+    <script src="../scripts/utils/time.js"></script>
+    <script src="../scripts/games/chrono-ripples.js"></script>
+</body>
+</html>

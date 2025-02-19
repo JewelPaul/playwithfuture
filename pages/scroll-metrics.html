@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Metrics - TimePassIndia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00fff2;
+            --neon-pink: #ff00ff;
+            --neon-green: #39ff14;
+            --neon-purple: #bf00ff;
+            --neon-yellow: #ffff00;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: var(--neon-blue);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        #stats {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border: 1px solid var(--neon-blue);
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 242, 0.2);
+            z-index: 1000;
+            min-width: 280px;
+        }
+
+        .stat-item {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .stat-item:nth-child(1) { border-left: 3px solid var(--neon-pink); }
+        .stat-item:nth-child(2) { border-left: 3px solid var(--neon-green); }
+        .stat-item:nth-child(3) { border-left: 3px solid var(--neon-purple); }
+        .stat-item:nth-child(4) { border-left: 3px solid var(--neon-yellow); }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .stat-value {
+            font-size: 1.4em;
+            margin-top: 5px;
+        }
+
+        .stat-item:nth-child(1) .stat-value { color: var(--neon-pink); text-shadow: 0 0 5px var(--neon-pink); }
+        .stat-item:nth-child(2) .stat-value { color: var(--neon-green); text-shadow: 0 0 5px var(--neon-green); }
+        .stat-item:nth-child(3) .stat-value { color: var(--neon-purple); text-shadow: 0 0 5px var(--neon-purple); }
+        .stat-item:nth-child(4) .stat-value { color: var(--neon-yellow); text-shadow: 0 0 5px var(--neon-yellow); }
+
+        #content {
+            margin-left: 350px;
+            padding: 20px;
+        }
+
+        .scroll-item {
+            background: rgba(0, 255, 242, 0.05);
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            min-height: 100px;
+            animation: fadeIn 0.5s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scroll-item:nth-child(5n+1) { border: 1px solid var(--neon-pink); }
+        .scroll-item:nth-child(5n+2) { border: 1px solid var(--neon-green); }
+        .scroll-item:nth-child(5n+3) { border: 1px solid var(--neon-purple); }
+        .scroll-item:nth-child(5n+4) { border: 1px solid var(--neon-yellow); }
+        .scroll-item:nth-child(5n+5) { border: 1px solid var(--neon-blue); }
+
+        .scroll-item:hover {
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+
+        #time {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 10px 20px;
+            border: 1px solid var(--neon-green);
+            border-radius: 5px;
+            z-index: 1000;
+            color: var(--neon-green);
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .home-button {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 12px 25px;
+            background: rgba(0, 0, 0, 0.9);
+            color: var(--neon-pink);
+            text-decoration: none;
+            border: 1px solid var(--neon-pink);
+            border-radius: 5px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .home-button:hover {
+            background: rgba(255, 0, 255, 0.1);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div id="time"></div>
+
+    <div id="stats">
+        <div class="stat-item">
+            <div class="stat-label">Total Distance Scrolled</div>
+            <div class="stat-value" id="totalDistance">0 pixels</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Items Generated</div>
+            <div class="stat-value" id="itemsCount">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Scroll Count</div>
+            <div class="stat-value" id="scrollCount">0</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">Current Speed</div>
+            <div class="stat-value" id="scrollSpeed">0 px/s</div>
+        </div>
+    </div>
+
+    <div id="content"></div>
+
+    <a href="../index.html" class="home-button">Return Home</a>
+
+    <script>
+        class InfiniteScroll {
+            constructor() {
+                this.itemsLoaded = 0;
+                this.scrollCount = 0;
+                this.totalDistance = 0;
+                this.lastScrollPos = window.scrollY;
+                this.lastScrollTime = Date.now();
+                this.isLoading = false;
+                
+                this.messages = [
+                    "🌟 Keep scrolling for more magic!",
+                    "🚀 Infinity awaits your scroll",
+                    "💫 Another fantastic discovery",
+                    "🎮 Level up your scroll game",
+                    "🌈 Creating digital rainbows",
+                    "🎨 Painting with pixels",
+                    "🎭 Every scroll tells a story",
+                    "🎪 Welcome to the endless show",
+                    "🌌 Exploring digital space",
+                    "🎢 Riding the scroll wave"
+                ];
+
+                this.content = document.getElementById('content');
+                this.setupEventListeners();
+                this.loadItems();
+                this.startClock();
+            }
+
+            setupEventListeners() {
+                window.addEventListener('scroll', () => {
+                    // Update scroll metrics
+                    this.scrollCount++;
+                    document.getElementById('scrollCount').textContent = this.formatNumber(this.scrollCount);
+
+                    // Calculate speed and distance
+                    const currentTime = Date.now();
+                    const timeDiff = currentTime - this.lastScrollTime;
+                    const scrollDiff = Math.abs(window.scrollY - this.lastScrollPos);
+                    
+                    this.totalDistance += scrollDiff;
+                    const speed = Math.round(scrollDiff / timeDiff * 1000);
+                    
+                    document.getElementById('scrollSpeed').textContent = `${this.formatNumber(speed)} px/s`;
+                    document.getElementById('totalDistance').textContent = this.formatDistance(this.totalDistance);
+
+                    this.lastScrollPos = window.scrollY;
+                    this.lastScrollTime = currentTime;
+
+                    // Check for infinite scroll
+                    if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 1000) {
+                        this.loadItems();
+                    }
+                }, { passive: true });
+            }
+
+            loadItems() {
+                if (this.isLoading) return;
+                this.isLoading = true;
+
+                for (let i = 0; i < 10; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'scroll-item';
+                    
+                    const itemNumber = ++this.itemsLoaded;
+                    const message = this.messages[itemNumber % this.messages.length];
+                    
+                    item.innerHTML = `
+                        <h2>#${itemNumber}</h2>
+                        <p>${message}</p>
+                        <p style="opacity: 0.7">Total Distance: ${this.formatDistance(this.totalDistance)}</p>
+                    `;
+                    
+                    this.content.appendChild(item);
+                }
+
+                document.getElementById('itemsCount').textContent = this.formatNumber(this.itemsLoaded);
+                this.isLoading = false;
+            }
+
+            formatNumber(num) {
+                return new Intl.NumberFormat().format(num);
+            }
+
+            formatDistance(pixels) {
+                if (pixels < 1000) return `${Math.round(pixels)} pixels`;
+                if (pixels < 1000000) return `${(pixels / 1000).toFixed(1)}k pixels`;
+                return `${(pixels / 1000000).toFixed(1)}M pixels`;
+            }
+
+            startClock() {
+                const timeDisplay = document.getElementById('time');
+                const updateClock = () => {
+                    const now = new Date();
+                    timeDisplay.textContent = now.toLocaleTimeString();
+                };
+                updateClock();
+                setInterval(updateClock, 1000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new InfiniteScroll();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Tunnel - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body {
+            background: #000;
+            min-height: 100vh;
+            overflow: hidden;
+            perspective: 1000px;
+        }
+
+        .time-display {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: #ff00ff;
+            font-size: 1rem;
+            text-shadow: 0 0 10px #ff00ff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border: 1px solid #ff00ff;
+            border-radius: 5px;
+            z-index: 100;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .tunnel {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            background: transparent;
+            color: #00ffff;
+            text-decoration: none;
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #00ffff;
+            z-index: 100;
+        }
+
+        .home-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 20px #00ffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="time-display" id="timeDisplay"></div>
+    <div class="tunnel" id="tunnel"></div>
+    <canvas id="bgCanvas"></canvas>
+    <a href="../index.html" class="home-btn">HOME</a>
+
+    <script>
+        // Time Display Function - CLEAN format only!
+        function updateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('timeDisplay').textContent = timeStr;
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Tunnel Effect
+        const tunnel = document.getElementById('tunnel');
+        const segments = 50;
+        const rings = [];
+        let mouseX = 0;
+        let mouseY = 0;
+
+        class Ring {
+            constructor(index) {
+                this.element = document.createElement('div');
+                this.element.style.position = 'absolute';
+                this.element.style.width = '100%';
+                this.element.style.height = '100%';
+                this.element.style.border = '2px solid';
+                this.element.style.borderRadius = '50%';
+                this.index = index;
+                this.angle = 0;
+                
+                tunnel.appendChild(this.element);
+                this.update();
+            }
+
+            update() {
+                const progress = this.index / segments;
+                const z = progress * 1000;
+                const size = 100 - progress * 100;
+                const hue = (progress * 360 + Date.now() * 0.05) % 360;
+                
+                this.angle += (mouseX - window.innerWidth / 2) * 0.00001 * (segments - this.index);
+                const offsetX = (mouseX - window.innerWidth / 2) * progress * 0.5;
+                const offsetY = (mouseY - window.innerHeight / 2) * progress * 0.5;
+
+                this.element.style.transform = `
+                    translateX(-50%) 
+                    translateY(-50%)
+                    translateZ(${-z}px) 
+                    rotateZ(${this.angle}rad)
+                    translate(${offsetX}px, ${offsetY}px)
+                `;
+                this.element.style.left = '50%';
+                this.element.style.top = '50%';
+                this.element.style.width = size + 'vmin';
+                this.element.style.height = size + 'vmin';
+                this.element.style.borderColor = `hsl(${hue}, 100%, 50%)`;
+                this.element.style.boxShadow = `0 0 ${20 * progress}px hsl(${hue}, 100%, 50%)`;
+            }
+        }
+
+        // Create rings
+        for (let i = 0; i < segments; i++) {
+            rings.push(new Ring(i));
+        }
+
+        // Background particles
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Particle system
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.z = 0;
+                this.size = Math.random() * 2;
+                this.speed = Math.random() * 2 + 1;
+                this.brightness = Math.random();
+            }
+
+            update() {
+                this.z += this.speed;
+                const scale = 1 + this.z * 0.001;
+                const screenX = (this.x - canvas.width/2) * scale + canvas.width/2;
+                const screenY = (this.y - canvas.height/2) * scale + canvas.height/2;
+
+                if (screenX < 0 || screenX > canvas.width || 
+                    screenY < 0 || screenY > canvas.height || 
+                    scale > 5) {
+                    this.reset();
+                }
+
+                const alpha = (1 - this.z/1000) * this.brightness;
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.fillRect(screenX, screenY, this.size * scale, this.size * scale);
+            }
+        }
+
+        const particles = Array(200).fill().map(() => new Particle());
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => particle.update());
+            rings.forEach(ring => ring.update());
+
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse interaction
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>

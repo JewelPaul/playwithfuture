@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Professional Audio Visualizer - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0a0a0a;
+            overflow: hidden;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        #container {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            gap: 20px;
+            background: rgba(15, 15, 15, 0.95);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .divider {
+            width: 1px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+        }
+        button {
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        button:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        button.active {
+            background: #2d6ff7;
+            border-color: #5b8ff9;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 150px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider-label {
+            color: #888;
+            font-size: 12px;
+            min-width: 70px;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #2d6ff7;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .now-playing {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 14px;
+            background: rgba(15, 15, 15, 0.95);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <div class="control-group">
+                <button id="load-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                    </svg>
+                    Load Audio
+                </button>
+            </div>
+            <div class="divider"></div>
+            <div class="control-group">
+                <button id="bars-btn" class="active">Spectrum</button>
+                <button id="circle-btn">Circular</button>
+                <button id="wave-btn">Waveform</button>
+            </div>
+            <div class="divider"></div>
+            <div class="slider-group">
+                <div class="slider-container">
+                    <span class="slider-label">Intensity</span>
+                    <input type="range" id="sensitivity" min="1" max="5" step="0.1" value="1.5">
+                </div>
+                <div class="slider-container">
+                    <span class="slider-label">Smoothing</span>
+                    <input type="range" id="smoothing" min="0" max="0.9" step="0.1" value="0.5">
+                </div>
+            </div>
+        </div>
+        <div id="now-playing" class="now-playing"></div>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioCtx.createAnalyser();
+        const nowPlaying = document.getElementById('now-playing');
+        let source = null;
+        let animationId = null;
+        let currentMode = 'bars';
+
+        // Set up analyser
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.onresize = resize;
+
+        // Visualization modes
+        const visualizers = {
+            bars: (dataArray) => {
+                ctx.fillStyle = 'rgba(10, 10, 10, 0.3)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const barWidth = (canvas.width / bufferLength) * 2.5;
+                let barHeight;
+                let x = 0;
+
+                for(let i = 0; i < bufferLength; i++) {
+                    barHeight = dataArray[i] * document.getElementById('sensitivity').value;
+
+                    const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
+                    gradient.addColorStop(0, `hsl(${i/bufferLength * 360}, 100%, 50%)`);
+                    gradient.addColorStop(1, `hsl(${i/bufferLength * 360}, 100%, 80%)`);
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+
+                    x += barWidth + 1;
+                }
+            },
+
+            circle: (dataArray) => {
+                ctx.fillStyle = 'rgba(10, 10, 10, 0.3)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = Math.min(centerX, centerY) - 100;
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.stroke();
+
+                for(let i = 0; i < bufferLength; i++) {
+                    const angle = (i / bufferLength) * Math.PI * 2;
+                    const value = dataArray[i] * document.getElementById('sensitivity').value;
+                    
+                    const x1 = centerX + Math.cos(angle) * radius;
+                    const y1 = centerY + Math.sin(angle) * radius;
+                    const x2 = centerX + Math.cos(angle) * (radius + value);
+                    const y2 = centerY + Math.sin(angle) * (radius + value);
+                    
+                    const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+                    gradient.addColorStop(0, `hsla(${i/bufferLength * 360}, 100%, 50%, 0.5)`);
+                    gradient.addColorStop(1, `hsla(${i/bufferLength * 360}, 100%, 50%, 1)`);
+                    
+                    ctx.beginPath();
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 2;
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+            },
+
+            wave: (dataArray) => {
+                ctx.fillStyle = 'rgba(10, 10, 10, 0.3)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.beginPath();
+                const sliceWidth = canvas.width / bufferLength;
+                let x = 0;
+
+                for(let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0 * document.getElementById('sensitivity').value;
+                    const y = (v * canvas.height/2) + canvas.height/2;
+
+                    if(i === 0) ctx.moveTo(x, y);
+                    else ctx.bezierCurveTo(x-sliceWidth, y, x, y, x, y);
+
+                    x += sliceWidth;
+                }
+
+                const gradient = ctx.createLinearGradient(0, canvas.height/2, canvas.width, canvas.height/2);
+                gradient.addColorStop(0, '#ff3366');
+                gradient.addColorStop(0.5, '#33ff66');
+                gradient.addColorStop(1, '#3366ff');
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        };
+
+        function draw() {
+            animationId = requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+            visualizers[currentMode](dataArray);
+        }
+
+        async function handleFile(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                
+                if(source) {
+                    source.stop();
+                    source.disconnect();
+                }
+                
+                source = audioCtx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(analyser);
+                analyser.connect(audioCtx.destination);
+                source.start(0);
+                draw();
+                
+                nowPlaying.textContent = `Now Playing: ${file.name}`;
+                nowPlaying.style.display = 'block';
+            } catch(err) {
+                console.error('File error:', err);
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('load-btn').onclick = () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'audio/*';
+            input.onchange = (e) => handleFile(e.target.files[0]);
+            input.click();
+        };
+
+        ['bars-btn', 'circle-btn', 'wave-btn'].forEach(id => {
+            document.getElementById(id).onclick = (e) => {
+                document.querySelectorAll('.control-group button').forEach(btn => 
+                    btn.classList.remove('active'));
+                e.target.classList.add('active');
+                currentMode = id.split('-')[0];
+            };
+        });
+
+        document.getElementById('smoothing').oninput = (e) => {
+            analyser.smoothingTimeConstant = parseFloat(e.target.value);
+        };
+
+        // Initial setup
+        analyser.smoothingTimeConstant = document.getElementById('smoothing').value;
+    </script>
+</body>
+</html>

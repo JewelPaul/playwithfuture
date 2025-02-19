@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Runner - TimePassIndia</title>
+    <style>
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body {
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Time Display */
+        .time-wrapper {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            text-align: right;
+        }
+
+        .time-display {
+            color: #00ffff;
+            font-size: 1.2em;
+            text-shadow: 0 0 10px #00ffff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+        }
+
+        /* Game Stats */
+        .game-stats {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            font-size: 1.2em;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Game Canvas Styling */
+        #gameCanvas {
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 20px #00ffff;
+        }
+
+        /* Navigation Button */
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            background: transparent;
+            color: #00ffff;
+            text-decoration: none;
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .home-btn:hover {
+            background: #00ffff;
+            color: #000;
+        }
+
+        /* Game Over Screen */
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ffff;
+            font-size: 2em;
+            text-align: center;
+            display: none;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #00ffff;
+            z-index: 100;
+        }
+
+        .restart-btn {
+            padding: 12px 24px;
+            background: transparent;
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            font-size: 0.8em;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .restart-btn:hover {
+            background: #00ffff;
+            color: #000;
+        }
+
+        /* Instructions */
+        .instructions {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #00ffff;
+            font-size: 1em;
+            text-align: right;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <!-- Time Display -->
+    <div class="time-wrapper">
+        <div class="time-display" id="timeDisplay"></div>
+    </div>
+    
+    <!-- Game Stats -->
+    <div class="game-stats">
+        <div class="score">Score: <span id="scoreDisplay">0</span></div>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Game Over Screen -->
+    <div class="game-over" id="gameOver">
+        GAME OVER<br>
+        Final Score: <span id="finalScore">0</span>
+        <button class="restart-btn" onclick="startGame()">PLAY AGAIN</button>
+    </div>
+    
+    <!-- Instructions -->
+    <div class="instructions">
+        Space/Up: Jump<br>
+        Down: Slide
+    </div>
+
+    <!-- Navigation -->
+    <a href="../index.html" class="home-btn">HOME</a>
+
+    <script>
+        // Time Display Function
+        function updateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('timeDisplay').textContent = timeStr;
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Game Setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 800;
+        canvas.height = 400;
+
+        // Game Variables
+        let score = 0;
+        let gameActive = false;
+        let player = {
+            x: 100,
+            y: canvas.height - 50,
+            width: 30,
+            height: 50,
+            jumping: false,
+            sliding: false,
+            velocity: 0
+        };
+        let obstacles = [];
+        let gravity = 0.8;
+        let jumpForce = -15;
+        let gameSpeed = 5;
+
+        // Event Listeners
+        document.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            
+            if ((e.code === 'Space' || e.code === 'ArrowUp') && !player.jumping) {
+                player.jumping = true;
+                player.velocity = jumpForce;
+            }
+            
+            if (e.code === 'ArrowDown') {
+                player.sliding = true;
+                player.height = 25;
+                player.y = canvas.height - 25;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowDown') {
+                player.sliding = false;
+                player.height = 50;
+                player.y = canvas.height - 50;
+            }
+        });
+
+        // Game Functions
+        function createObstacle() {
+            const type = Math.random() > 0.5 ? 'high' : 'low';
+            const obstacle = {
+                x: canvas.width,
+                y: type === 'high' ? canvas.height - 100 : canvas.height - 30,
+                width: 30,
+                height: type === 'high' ? 50 : 30
+            };
+            obstacles.push(obstacle);
+        }
+
+        function updateGame() {
+            // Update player
+            if (player.jumping) {
+                player.velocity += gravity;
+                player.y += player.velocity;
+                
+                if (player.y > canvas.height - player.height) {
+                    player.y = canvas.height - player.height;
+                    player.jumping = false;
+                    player.velocity = 0;
+                }
+            }
+
+            // Update obstacles
+            obstacles = obstacles.filter(obs => {
+                obs.x -= gameSpeed;
+                return obs.x > -obs.width;
+            });
+
+            // Create new obstacles
+            if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 300) {
+                createObstacle();
+            }
+
+            // Check collisions
+            obstacles.forEach(obs => {
+                if (checkCollision(player, obs)) {
+                    endGame();
+                }
+            });
+
+            // Update score
+            score++;
+            document.getElementById('scoreDisplay').textContent = Math.floor(score/10);
+
+            // Increase difficulty
+            gameSpeed = 5 + Math.floor(score/1000);
+        }
+
+        function checkCollision(player, obstacle) {
+            return player.x < obstacle.x + obstacle.width &&
+                   player.x + player.width > obstacle.x &&
+                   player.y < obstacle.y + obstacle.height &&
+                   player.y + player.height > obstacle.y;
+        }
+
+        function drawGame() {
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.stroke();
+
+            // Draw player
+            ctx.fillStyle = '#00ffff';
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 10;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.shadowBlur = 0;
+
+            // Draw obstacles
+            obstacles.forEach(obs => {
+                ctx.fillStyle = '#00ffff';
+                ctx.shadowColor = '#00ffff';
+                ctx.shadowBlur = 10;
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+            });
+        }
+
+        function gameLoop() {
+            if (gameActive) {
+                updateGame();
+                drawGame();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function startGame() {
+            score = 0;
+            gameSpeed = 5;
+            obstacles = [];
+            player.y = canvas.height - player.height;
+            player.jumping = false;
+            player.sliding = false;
+            gameActive = true;
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('scoreDisplay').textContent = '0';
+            gameLoop();
+        }
+
+        function endGame() {
+            gameActive = false;
+            document.getElementById('gameOver').style.display = 'block';
+            document.getElementById('finalScore').textContent = Math.floor(score/10);
+        }
+
+        // Initialize game
+        window.addEventListener('load', startGame);
+    </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Error Dance Party - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: 'Courier New', monospace;
+            cursor: none;
+        }
+
+        .error-msg {
+            position: absolute;
+            padding: 10px 20px;
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff3333;
+            border: 1px solid #ff3333;
+            border-radius: 5px;
+            pointer-events: none;
+            transition: transform 0.3s ease;
+            text-shadow: 0 0 5px #ff3333;
+            white-space: nowrap;
+        }
+
+        #cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff3333 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            mix-blend-mode: screen;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: #333;
+            color: #ff3333;
+            border: 1px solid #ff3333;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #ff3333;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="cursor"></div>
+    <div id="controls">
+        <button onclick="changeMode('wave')">Wave Mode</button>
+        <button onclick="changeMode('orbit')">Orbit Mode</button>
+        <button onclick="changeMode('chaos')">Chaos Mode</button>
+        <button onclick="addMoreErrors()">More Errors!</button>
+    </div>
+
+    <script>
+        const cursor = document.getElementById('cursor');
+        let mouseX = 0;
+        let mouseY = 0;
+        let errors = [];
+        let currentMode = 'wave';
+        
+        const errorMessages = [
+            "404 Not Found",
+            "500 Server Error",
+            "403 Forbidden",
+            "418 I'm a teapot",
+            "Connection Failed",
+            "Syntax Error",
+            "Stack Overflow",
+            "NULL Pointer",
+            "Unexpected ;",
+            "Memory Leak",
+            "Buffer Overflow",
+            "Division by Zero",
+            "Code = Poetry",
+            "PC LOAD LETTER",
+            "CTRL+ALT+DEL"
+        ];
+
+        class ErrorBox {
+            constructor() {
+                this.element = document.createElement('div');
+                this.element.className = 'error-msg';
+                this.element.textContent = errorMessages[Math.floor(Math.random() * errorMessages.length)];
+                this.x = Math.random() * window.innerWidth;
+                this.y = Math.random() * window.innerHeight;
+                this.angle = Math.random() * Math.PI * 2;
+                this.speed = 1 + Math.random() * 2;
+                this.distance = 100 + Math.random() * 100;
+                this.offset = Math.random() * Math.PI * 2;
+                document.body.appendChild(this.element);
+            }
+
+            update() {
+                switch(currentMode) {
+                    case 'wave':
+                        this.waveMode();
+                        break;
+                    case 'orbit':
+                        this.orbitMode();
+                        break;
+                    case 'chaos':
+                        this.chaosMode();
+                        break;
+                }
+
+                // Add glow effect based on distance to cursor
+                const dx = this.x - mouseX;
+                const dy = this.y - mouseY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const intensity = Math.max(0, 1 - distance / 300);
+                this.element.style.textShadow = `0 0 ${intensity * 20}px #ff3333`;
+                this.element.style.transform = `translate(${this.x}px, ${this.y}px)`;
+            }
+
+            waveMode() {
+                const time = Date.now() / 1000;
+                this.x += Math.sin(time + this.offset) * 2;
+                this.y += Math.cos(time + this.offset) * 2;
+                this.keepInBounds();
+            }
+
+            orbitMode() {
+                const dx = this.x - mouseX;
+                const dy = this.y - mouseY;
+                const angle = Math.atan2(dy, dx);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > this.distance) {
+                    this.x = mouseX + Math.cos(angle) * this.distance;
+                    this.y = mouseY + Math.sin(angle) * this.distance;
+                }
+                
+                this.angle += this.speed * 0.02;
+                this.x += Math.cos(this.angle) * 2;
+                this.y += Math.sin(this.angle) * 2;
+            }
+
+            chaosMode() {
+                const dx = this.x - mouseX;
+                const dy = this.y - mouseY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 200) {
+                    this.x += (dx / distance) * 10;
+                    this.y += (dy / distance) * 10;
+                }
+                
+                this.x += (Math.random() - 0.5) * 10;
+                this.y += (Math.random() - 0.5) * 10;
+                this.keepInBounds();
+            }
+
+            keepInBounds() {
+                if (this.x < 0) this.x = window.innerWidth;
+                if (this.x > window.innerWidth) this.x = 0;
+                if (this.y < 0) this.y = window.innerHeight;
+                if (this.y > window.innerHeight) this.y = 0;
+            }
+        }
+
+        function init() {
+            for (let i = 0; i < 15; i++) {
+                errors.push(new ErrorBox());
+            }
+            animate();
+        }
+
+        function animate() {
+            errors.forEach(error => error.update());
+            requestAnimationFrame(animate);
+        }
+
+        function changeMode(mode) {
+            currentMode = mode;
+        }
+
+        function addMoreErrors() {
+            for (let i = 0; i < 5; i++) {
+                errors.push(new ErrorBox());
+            }
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
+        });
+
+        init();
+    </script>
+</body>
+</html>

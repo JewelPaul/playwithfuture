@@ -1,0 +1,350 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    background: #000;
+    color: #00fff2;
+    font-family: 'Share Tech Mono', monospace;
+    overflow-x: hidden;
+    min-height: 300vh;
+}
+
+.metrics-container {
+    position: fixed;
+    top: 100px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    z-index: 1000;
+}
+
+.metric-card {
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid #00fff2;
+    border-radius: 10px;
+    padding: 20px;
+    min-width: 300px;
+    box-shadow: 0 0 20px rgba(0, 255, 242, 0.2);
+}
+
+.metric-card .label {
+    font-size: 0.9em;
+    opacity: 0.8;
+    margin-bottom: 10px;
+}
+
+.metric-card .value {
+    font-size: 1.8em;
+    text-shadow: 0 0 10px #00fff2;
+}
+
+.comparison {
+    font-size: 0.9em;
+    margin-top: 10px;
+    opacity: 0.7;
+}
+
+.speedometer {
+    position: relative;
+    width: 100%;
+    height: 100px;
+    margin-top: 20px;
+}
+
+#speedCanvas {
+    width: 100%;
+    height: 100%;
+}
+
+.speed-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 40px;
+    background: #00fff2;
+    transform-origin: bottom center;
+    transition: transform 0.3s ease;
+    box-shadow: 0 0 10px #00fff2;
+}
+
+.stats {
+    display: flex;
+    justify-content: space-between;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.scroll-trail {
+    position: fixed;
+    right: 30px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: rgba(0, 255, 242, 0.1);
+    z-index: 999;
+}
+
+.trail-particle {
+    position: absolute;
+    width: 4px;
+    height: 20px;
+    background: #00fff2;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.time-overlay,
+.user-overlay {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px 20px;
+    border: 1px solid #00fff2;
+    border-radius: 5px;
+    z-index: 1000;
+    text-shadow: 0 0 10px #00fff2;
+}
+
+.user-overlay {
+    top: 70px;
+}
+
+.infinite-content {
+    padding: 20px;
+    margin-left: 350px;
+}
+
+.scroll-message {
+    text-align: center;
+    padding: 50px;
+    font-size: 1.2em;
+    opacity: 0.7;
+}
+
+.home-button {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #00fff2;
+    text-decoration: none;
+    border: 1px solid #00fff2;
+    border-radius: 5px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.home-button:hover {
+    background: rgba(0, 255, 242, 0.2);
+    box-shadow: 0 0 20px rgba(0, 255, 242, 0.4);
+}
+
+@media (max-width: 768px) {
+    .metrics-container {
+        left: 10px;
+        right: 10px;
+    }
+
+    .metric-card {
+        min-width: unset;
+    }
+
+    .infinite-content {
+        margin-left: 10px;
+        margin-right: 10px;
+    }
+}
+/* Add these new styles to your existing CSS */
+
+.scroll-item {
+    margin: 30px 20px;
+    position: relative;
+}
+
+.scroll-content {
+    background: rgba(0, 255, 242, 0.05);
+    border: 1px solid rgba(0, 255, 242, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.scroll-content:hover {
+    background: rgba(0, 255, 242, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 242, 0.1);
+}
+
+.scroll-index {
+    position: absolute;
+    left: -50px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8em;
+    color: rgba(0, 255, 242, 0.5);
+}
+
+.pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+.pattern-shape {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgba(0, 255, 242, 0.5);
+    border-radius: 4px;
+    animation: floatAnimation 10s infinite linear;
+}
+
+@keyframes floatAnimation {
+    0% { transform: rotate(0deg) translateY(0); }
+    50% { transform: rotate(180deg) translateY(-20px); }
+    100% { transform: rotate(360deg) translateY(0); }
+}
+
+.scroll-message {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    font-size: 1.2em;
+    margin: 20px 0;
+}
+
+.trail-particle {
+    position: absolute;
+    width: 4px;
+    background: linear-gradient(to bottom, rgba(0, 255, 242, 0.8), rgba(0, 255, 242, 0));
+    border-radius: 2px;
+    transform-origin: top center;
+    transition: opacity 0.3s ease, height 0.2s ease;
+}
+
+.update {
+    animation: valueUpdate 0.3s ease;
+}
+
+@keyframes valueUpdate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: rgba(0, 255, 242, 0.5);
+}
+
+/* Enhance existing styles */
+
+.metric-card {
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 255, 242, 0.3);
+}
+
+.value {
+    transition: all 0.3s ease;
+}
+
+.speedometer {
+    position: relative;
+    width: 100%;
+    height: 100px;
+    margin-top: 20px;
+}
+
+#speedCanvas {
+    width: 100%;
+    height: 100%;
+}
+
+.speed-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 40px;
+    background: linear-gradient(to top, #00fff2, rgba(0, 255, 242, 0.3));
+    transform-origin: bottom center;
+    transition: transform 0.3s ease;
+    box-shadow: 0 0 10px #00fff2;
+}
+/* Add to your existing CSS */
+
+.content-buffer {
+    padding-bottom: 2000px; /* Extra space for smooth scrolling */
+}
+
+.scroll-item {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.5s forwards;
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pattern-shape {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgba(0, 255, 242, 0.3);
+    border-radius: 4px;
+    animation: float 8s infinite ease-in-out;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    25% {
+        transform: translate(10px, 10px) rotate(90deg);
+    }
+    50% {
+        transform: translate(0, 20px) rotate(180deg);
+    }
+    75% {
+        transform: translate(-10px, 10px) rotate(270deg);
+    }
+}
+
+.scroll-content {
+    background: rgba(0, 255, 242, 0.05);
+    border: 1px solid rgba(0, 255, 242, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    transition: all 0.3s ease;
+}
+
+.scroll-content:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 242, 0.1);
+    background: rgba(0, 255, 242, 0.08);
+}

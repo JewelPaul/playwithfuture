@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ecosystem Builder - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            background: #001;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        #world {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .creature {
+            position: absolute;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+
+        .plant {
+            background: linear-gradient(45deg, #0f0, #090);
+        }
+
+        .herbivore {
+            background: linear-gradient(45deg, #09f, #06c);
+        }
+
+        .carnivore {
+            background: linear-gradient(45deg, #f00, #900);
+        }
+
+        #toolbar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: grid;
+            gap: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .tool {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .tool:hover {
+            transform: scale(1.05);
+        }
+
+        #stats {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        #weather {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            font-size: 24px;
+        }
+
+        #time {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 24px;
+        }
+
+        .weather-effect {
+            position: absolute;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="world"></div>
+    
+    <div id="toolbar">
+        <button class="tool" onclick="setTool('plant')" style="background: #0f0">🌱 Plant Seed</button>
+        <button class="tool" onclick="setTool('herbivore')" style="background: #09f">🐰 Add Herbivore</button>
+        <button class="tool" onclick="setTool('carnivore')" style="background: #f00">🦊 Add Carnivore</button>
+        <button class="tool" onclick="changeWeather('sun')" style="background: #ff0">☀️ Sunshine</button>
+        <button class="tool" onclick="changeWeather('rain')" style="background: #00f">🌧️ Rain</button>
+        <button class="tool" onclick="changeWeather('wind')" style="background: #fff">💨 Wind</button>
+    </div>
+
+    <div id="stats">
+        Plants: <span id="plant-count">0</span><br>
+        Herbivores: <span id="herbivore-count">0</span><br>
+        Carnivores: <span id="carnivore-count">0</span><br>
+        Temperature: <span id="temp">20°C</span>
+    </div>
+
+    <div id="weather">☀️</div>
+    <div id="time">Day 1</div>
+
+    <script>
+        const world = document.getElementById('world');
+        let currentTool = 'plant';
+        let day = 1;
+        let currentWeather = 'sun';
+        let creatures = [];
+        let temperature = 20;
+
+        class Creature {
+            constructor(type, x, y) {
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.energy = 100;
+                this.age = 0;
+                this.element = document.createElement('div');
+                this.element.className = `creature ${type}`;
+                this.element.style.width = '20px';
+                this.element.style.height = '20px';
+                this.element.style.borderRadius = '50%';
+                this.updatePosition();
+                world.appendChild(this.element);
+                creatures.push(this);
+            }
+
+            updatePosition() {
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+            }
+
+            move() {
+                if (this.type === 'plant') return;
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = this.type === 'herbivore' ? 3 : 5;
+                
+                this.x += Math.cos(angle) * speed;
+                this.y += Math.sin(angle) * speed;
+
+                // Keep within bounds
+                this.x = Math.max(0, Math.min(this.x, world.clientWidth));
+                this.y = Math.max(0, Math.min(this.y, world.clientHeight));
+                
+                this.updatePosition();
+            }
+
+            interact() {
+                creatures.forEach(other => {
+                    if (other === this) return;
+
+                    const dx = other.x - this.x;
+                    const dy = other.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 30) {
+                        if (this.type === 'herbivore' && other.type === 'plant') {
+                            this.energy += 20;
+                            other.die();
+                        } else if (this.type === 'carnivore' && other.type === 'herbivore') {
+                            this.energy += 30;
+                            other.die();
+                        }
+                    }
+                });
+            }
+
+            update() {
+                this.age++;
+                this.energy--;
+
+                if (this.type !== 'plant') {
+                    this.move();
+                    this.interact();
+                }
+
+                // Growth and reproduction
+                if (this.energy > 150) {
+                    this.reproduce();
+                }
+
+                // Death conditions
+                if (this.energy <= 0 || this.age > 1000) {
+                    this.die();
+                }
+
+                // Weather effects
+                switch(currentWeather) {
+                    case 'sun':
+                        if (this.type === 'plant') this.energy += 2;
+                        break;
+                    case 'rain':
+                        if (this.type === 'plant') this.energy += 3;
+                        else this.energy--;
+                        break;
+                    case 'wind':
+                        if (this.type === 'plant') this.energy--;
+                        break;
+                }
+
+                // Update appearance
+                const size = 20 * (this.energy / 100);
+                this.element.style.width = `${size}px`;
+                this.element.style.height = `${size}px`;
+            }
+
+            reproduce() {
+                this.energy /= 2;
+                new Creature(this.type, 
+                    this.x + (Math.random() - 0.5) * 50,
+                    this.y + (Math.random() - 0.5) * 50
+                );
+            }
+
+            die() {
+                this.element.remove();
+                creatures = creatures.filter(c => c !== this);
+            }
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+        }
+
+        function changeWeather(weather) {
+            currentWeather = weather;
+            document.getElementById('weather').textContent = 
+                weather === 'sun' ? '☀️' : 
+                weather === 'rain' ? '🌧️' : '💨';
+
+            // Clear existing weather effects
+            document.querySelectorAll('.weather-effect').forEach(e => e.remove());
+
+            // Add new weather effects
+            if (weather === 'rain') createRaindrops();
+            if (weather === 'wind') createWindParticles();
+        }
+
+        function createRaindrops() {
+            for (let i = 0; i < 50; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'weather-effect';
+                drop.style.position = 'absolute';
+                drop.style.width = '2px';
+                drop.style.height = '20px';
+                drop.style.background = '#00f';
+                drop.style.left = Math.random() * world.clientWidth + 'px';
+                drop.style.top = -20 + 'px';
+                world.appendChild(drop);
+
+                function fall() {
+                    const top = parseFloat(drop.style.top);
+                    if (top > world.clientHeight) {
+                        drop.style.top = -20 + 'px';
+                    } else {
+                        drop.style.top = (top + 5) + 'px';
+                    }
+                    if (currentWeather === 'rain') requestAnimationFrame(fall);
+                    else drop.remove();
+                }
+                fall();
+            }
+        }
+
+        function createWindParticles() {
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'weather-effect';
+                particle.style.position = 'absolute';
+                particle.style.width = '10px';
+                particle.style.height = '2px';
+                particle.style.background = '#fff';
+                particle.style.left = -10 + 'px';
+                particle.style.top = Math.random() * world.clientHeight + 'px';
+                world.appendChild(particle);
+
+                function blow() {
+                    const left = parseFloat(particle.style.left);
+                    if (left > world.clientWidth) {
+                        particle.style.left = -10 + 'px';
+                    } else {
+                        particle.style.left = (left + 8) + 'px';
+                    }
+                    if (currentWeather === 'wind') requestAnimationFrame(blow);
+                    else particle.remove();
+                }
+                blow();
+            }
+        }
+
+        world.addEventListener('click', (e) => {
+            const rect = world.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            new Creature(currentTool, x, y);
+        });
+
+        function updateStats() {
+            document.getElementById('plant-count').textContent = 
+                creatures.filter(c => c.type === 'plant').length;
+            document.getElementById('herbivore-count').textContent = 
+                creatures.filter(c => c.type === 'herbivore').length;
+            document.getElementById('carnivore-count').textContent = 
+                creatures.filter(c => c.type === 'carnivore').length;
+        }
+
+        setInterval(() => {
+            creatures.forEach(creature => creature.update());
+            updateStats();
+            day++;
+            document.getElementById('time').textContent = `Day ${day}`;
+            
+            // Random temperature fluctuations
+            temperature += (Math.random() - 0.5) * 2;
+            temperature = Math.round(Math.max(0, Math.min(40, temperature)));
+            document.getElementById('temp').textContent = `${temperature}°C`;
+        }, 1000);
+
+        // Initial setup
+        changeWeather('sun');
+    </script>
+</body>
+</html>

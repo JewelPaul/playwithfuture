@@ -1,0 +1,150 @@
+.game-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background: #000;
+}
+
+#bubbleCanvas {
+    background: transparent;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    cursor: crosshair;
+}
+
+.time-overlay {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #00fff2;
+    font-family: 'Share Tech Mono', monospace;
+    padding: 10px 20px;
+    border: 1px solid #00fff2;
+    border-radius: 5px;
+    z-index: 1000;
+    text-shadow: 0 0 10px #00fff2;
+    font-size: 1.2em;
+}
+
+.stats {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1000;
+    font-family: 'Share Tech Mono', monospace;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #00fff2;
+    box-shadow: 0 0 20px rgba(0, 255, 242, 0.2);
+}
+
+.score, .combo {
+    margin: 0.5rem 0;
+    color: #00fff2;
+    text-shadow: 0 0 10px #00fff2;
+    font-size: 1.2rem;
+}
+
+.home-button {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    padding: 0.8rem 1.5rem;
+    background: rgba(0, 255, 242, 0.2);
+    color: #00fff2;
+    text-decoration: none;
+    border-radius: 8px;
+    border: 1px solid #00fff2;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    text-shadow: 0 0 5px #00fff2;
+    box-shadow: 0 0 10px rgba(0, 255, 242, 0.2);
+}
+
+.home-button:hover {
+    transform: scale(1.1);
+    background: rgba(0, 255, 242, 0.3);
+    box-shadow: 0 0 20px rgba(0, 255, 242, 0.4);
+}
+
+.ad-space {
+    position: fixed;
+    z-index: 999;
+}
+
+.ad-top {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 728px;
+    height: 90px;
+}
+
+.ad-bottom {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 728px;
+    height: 90px;
+}
+
+.ad-left {
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 160px;
+    height: 600px;
+}
+
+.ad-right {
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 160px;
+    height: 600px;
+}
+
+@media (max-width: 768px) {
+    .time-overlay {
+        right: 10px;
+        padding: 8px 15px;
+        font-size: 1em;
+    }
+
+    .stats {
+        top: 0.5rem;
+        left: 0.5rem;
+        padding: 0.8rem 1rem;
+    }
+
+    .score, .combo {
+        font-size: 1rem;
+        margin: 0.3rem 0;
+    }
+
+    .home-button {
+        bottom: 0.5rem;
+        left: 0.5rem;
+        padding: 0.6rem 1rem;
+        font-size: 0.9em;
+    }
+
+    .ad-left, .ad-right {
+        display: none;
+    }
+
+    .ad-top, .ad-bottom {
+        width: 320px;
+        height: 50px;
+    }
+}

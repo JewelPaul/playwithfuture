@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Paint - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body {
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .time-wrapper {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            text-align: right;
+        }
+
+        .time-display {
+            color: #ff00ff;
+            font-size: 1.2em;
+            text-shadow: 0 0 10px #ff00ff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border: 1px solid #ff00ff;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .paint-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .title {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff00ff;
+            font-size: 3em;
+            text-shadow: 0 0 20px #ff00ff;
+            pointer-events: none;
+            opacity: 0.7;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            background: transparent;
+            color: #ff00ff;
+            text-decoration: none;
+            border: 2px solid #ff00ff;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #ff00ff;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.1);
+        }
+
+        .home-btn:hover {
+            background: #ff00ff;
+            color: #000;
+            box-shadow: 0 0 20px #ff00ff;
+        }
+
+        .clear-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: transparent;
+            color: #ff00ff;
+            border: 2px solid #ff00ff;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #ff00ff;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .clear-btn:hover {
+            background: #ff00ff;
+            color: #000;
+            box-shadow: 0 0 20px #ff00ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="time-wrapper">
+        <div class="time-display" id="timeDisplay"></div>
+    </div>
+    
+    <canvas class="paint-canvas" id="paintCanvas"></canvas>
+    <h1 class="title">NEON PAINT</h1>
+    <a href="../index.html" class="home-btn">HOME</a>
+    <button class="clear-btn" id="clearBtn">CLEAR</button>
+
+    <script>
+        // Time Display Update
+        function updateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('timeDisplay').textContent = timeStr;
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Neon Paint Animation
+        class NeonPaint {
+            constructor() {
+                this.canvas = document.getElementById('paintCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.isDrawing = false;
+                this.lastX = 0;
+                this.lastY = 0;
+                this.hue = 0;
+                this.init();
+            }
+
+            init() {
+                this.resize();
+                this.setupEventListeners();
+                this.animate();
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            setupEventListeners() {
+                window.addEventListener('resize', () => this.resize());
+                this.canvas.addEventListener('mousedown', (e) => this.startDrawing(e));
+                this.canvas.addEventListener('mousemove', (e) => this.draw(e));
+                this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+                this.canvas.addEventListener('mouseout', () => this.stopDrawing());
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearCanvas());
+            }
+
+            startDrawing(e) {
+                this.isDrawing = true;
+                this.lastX = e.clientX;
+                this.lastY = e.clientY;
+            }
+
+            draw(e) {
+                if (!this.isDrawing) return;
+
+                const x = e.clientX;
+                const y = e.clientY;
+                const distance = Math.sqrt(
+                    Math.pow(x - this.lastX, 2) + 
+                    Math.pow(y - this.lastY, 2)
+                );
+
+                for (let i = 0; i < distance; i += 5) {
+                    const ratio = i / distance;
+                    const particleX = this.lastX + (x - this.lastX) * ratio;
+                    const particleY = this.lastY + (y - this.lastY) * ratio;
+
+                    this.particles.push({
+                        x: particleX,
+                        y: particleY,
+                        size: Math.random() * 3 + 2,
+                        hue: this.hue,
+                        alpha: 1,
+                        speed: Math.random() * 2 - 1
+                    });
+                }
+
+                this.hue = (this.hue + 1) % 360;
+                this.lastX = x;
+                this.lastY = y;
+            }
+
+            stopDrawing() {
+                this.isDrawing = false;
+            }
+
+            clearCanvas() {
+                this.particles = [];
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            animate() {
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.particles.forEach((particle, index) => {
+                    particle.y += particle.speed;
+                    particle.alpha *= 0.995;
+
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `hsla(${particle.hue}, 100%, 50%, ${particle.alpha})`;
+                    this.ctx.fill();
+
+                    if (particle.alpha < 0.05) {
+                        this.particles.splice(index, 1);
+                    }
+                });
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Start animation when page loads
+        window.addEventListener('load', () => new NeonPaint());
+    </script>
+</body>
+</html>

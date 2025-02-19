@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave Pool - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body {
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .time-wrapper {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            text-align: right;
+        }
+
+        .time-display {
+            color: #00fff2;
+            font-size: 1.2em;
+            text-shadow: 0 0 10px #00fff2;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border: 1px solid #00fff2;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .wave-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .title {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00fff2;
+            font-size: 3em;
+            text-shadow: 0 0 20px #00fff2;
+            pointer-events: none;
+            opacity: 0.7;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            background: transparent;
+            color: #00fff2;
+            text-decoration: none;
+            border: 2px solid #00fff2;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #00fff2;
+            box-shadow: 0 0 15px rgba(0, 255, 242, 0.1);
+        }
+
+        .home-btn:hover {
+            background: #00fff2;
+            color: #000;
+            box-shadow: 0 0 20px #00fff2;
+        }
+    </style>
+</head>
+<body>
+    <div class="time-wrapper">
+        <div class="time-display" id="timeDisplay">2025-02-07 05:00:39</div>
+    </div>
+    
+    <canvas class="wave-canvas" id="waveCanvas"></canvas>
+    <h1 class="title">WAVE POOL</h1>
+    <a href="../index.html" class="home-btn">HOME</a>
+
+    <script>
+        // Time Display Update
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toISOString().replace('T', ' ').split('.')[0];
+            document.getElementById('timeDisplay').textContent = timeStr;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Wave Animation
+        class WavePool {
+            constructor() {
+                this.canvas = document.getElementById('waveCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.waves = [];
+                this.points = [];
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.init();
+            }
+
+            init() {
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.canvas.addEventListener('click', (e) => this.addWave(e));
+                this.canvas.addEventListener('mousemove', (e) => {
+                    this.mouseX = e.clientX;
+                    this.mouseY = e.clientY;
+                });
+                this.createPoints();
+                this.animate();
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.createPoints();
+            }
+
+            createPoints() {
+                this.points = [];
+                const spacing = this.canvas.width / 50;
+                for(let i = 0; i <= 50; i++) {
+                    this.points.push({
+                        x: i * spacing,
+                        y: this.canvas.height / 2,
+                        baseY: this.canvas.height / 2,
+                        velocity: 0
+                    });
+                }
+            }
+
+            addWave(e) {
+                const wave = {
+                    x: e.clientX,
+                    y: e.clientY,
+                    radius: 0,
+                    strength: 300,
+                    decay: 0.02
+                };
+                this.waves.push(wave);
+            }
+
+            update() {
+                // Update waves
+                this.waves.forEach((wave, index) => {
+                    wave.radius += 10;
+                    wave.strength *= (1 - wave.decay);
+                    if(wave.strength < 0.1) {
+                        this.waves.splice(index, 1);
+                    }
+                });
+
+                // Update points
+                this.points.forEach(point => {
+                    let force = 0;
+                    
+                    // Wave forces
+                    this.waves.forEach(wave => {
+                        const dx = point.x - wave.x;
+                        const dy = point.baseY - wave.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if(distance < wave.radius + 100 && distance > wave.radius - 100) {
+                            force += Math.sin((distance - wave.radius) * 0.02) * wave.strength;
+                        }
+                    });
+
+                    // Mouse force
+                    const dx = point.x - this.mouseX;
+                    const dy = point.baseY - this.mouseY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if(distance < 100) {
+                        force += (100 - distance) * 0.2;
+                    }
+
+                    // Spring physics
+                    const displacement = point.y - point.baseY;
+                    const springForce = -0.01 * displacement;
+                    point.velocity += springForce + force * 0.005;
+                    point.velocity *= 0.95; // Damping
+                    point.y += point.velocity;
+                });
+            }
+
+            draw() {
+                this.ctx.fillStyle = '#000';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw wave
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, this.canvas.height);
+                this.ctx.lineTo(this.points[0].x, this.points[0].y);
+
+                for(let i = 1; i < this.points.length; i++) {
+                    const xc = (this.points[i].x + this.points[i-1].x) / 2;
+                    const yc = (this.points[i].y + this.points[i-1].y) / 2;
+                    this.ctx.quadraticCurveTo(this.points[i-1].x, this.points[i-1].y, xc, yc);
+                }
+
+                this.ctx.lineTo(this.canvas.width, this.canvas.height);
+                this.ctx.closePath();
+
+                // Gradient fill
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                gradient.addColorStop(0, 'rgba(0, 255, 242, 0.4)');
+                gradient.addColorStop(1, 'rgba(0, 255, 242, 0)');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fill();
+
+                // Neon effect
+                this.ctx.strokeStyle = '#00fff2';
+                this.ctx.lineWidth = 2;
+                this.ctx.shadowColor = '#00fff2';
+                this.ctx.shadowBlur = 20;
+                this.ctx.stroke();
+                this.ctx.shadowBlur = 0;
+            }
+
+            animate() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Start animation when page loads
+        window.addEventListener('load', () => new WavePool());
+    </script>
+</body>
+</html>

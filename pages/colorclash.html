@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Clash - TimePassIndia</title>
+
+    <!-- Main Styling -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body {
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Time Display Styling */
+        .time-wrapper {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            text-align: right;
+        }
+
+        .time-display {
+            color: #00ff66;
+            font-size: 1.2em;
+            text-shadow: 0 0 10px #00ff66;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border: 1px solid #00ff66;
+            border-radius: 5px;
+        }
+
+        /* Game Stats Display */
+        .game-stats {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: #00ff66;
+            text-shadow: 0 0 10px #00ff66;
+            font-size: 1.2em;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .difficulty {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        /* Game Grid Styling */
+        .color-grid {
+            display: grid;
+            gap: 10px;
+            padding: 20px;
+            background: rgba(0, 255, 102, 0.1);
+            border-radius: 10px;
+            border: 1px solid #00ff66;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.2);
+        }
+
+        .color-cell {
+            width: 80px;
+            height: 80px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-cell:hover {
+            transform: scale(1.05);
+        }
+
+        /* Navigation Button */
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            background: transparent;
+            color: #00ff66;
+            text-decoration: none;
+            border: 2px solid #00ff66;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #00ff66;
+        }
+
+        .home-btn:hover {
+            background: #00ff66;
+            color: #000;
+        }
+
+        /* Game Over Screen */
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ff66;
+            font-size: 2em;
+            text-align: center;
+            display: none;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #00ff66;
+        }
+
+        .restart-btn {
+            padding: 12px 24px;
+            background: transparent;
+            color: #00ff66;
+            border: 2px solid #00ff66;
+            border-radius: 5px;
+            font-size: 0.8em;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .restart-btn:hover {
+            background: #00ff66;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Time Display Component -->
+    <div class="time-wrapper">
+        <div class="time-display" id="timeDisplay"></div>
+    </div>
+    
+    <!-- Game Stats Display -->
+    <div class="game-stats">
+        <div class="score">Score: <span id="scoreDisplay">0</span></div>
+        <div class="difficulty" id="difficultyDisplay">Easy Mode</div>
+    </div>
+
+    <!-- Main Game Grid -->
+    <div class="color-grid" id="colorGrid"></div>
+    
+    <!-- Game Over Screen -->
+    <div class="game-over" id="gameOver">
+        GAME OVER<br>
+        Final Score: <span id="finalScore">0</span>
+        <button class="restart-btn" onclick="startGame()">PLAY AGAIN</button>
+    </div>
+    
+    <!-- Navigation -->
+    <a href="../index.html" class="home-btn">HOME</a>
+
+    <script>
+        // Time Display Function - Updates every second
+        function updateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('timeDisplay').textContent = timeStr;
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Game Variables
+        let score = 0;
+        let gameActive = true;
+        let timeoutId;
+
+        // Color Generation Function
+        function generateRandomColor() {
+            const hue = Math.floor(Math.random() * 360);
+            return `hsl(${hue}, 70%, 50%)`;
+        }
+
+        // Difficulty Settings Based on Score
+        function getDifficultyConfig(score) {
+            // Easy Mode (0-14 points)
+            if (score < 15) {
+                return {
+                    size: 9,              // 3x3 grid
+                    difference: 45,        // Very noticeable difference
+                    time: 8000,           // 8 seconds
+                    message: "Easy Mode"
+                };
+            }
+            // Medium Mode (15-29 points)
+            else if (score < 30) {
+                return {
+                    size: 16,             // 4x4 grid
+                    difference: 35,        // Still quite noticeable
+                    time: 7000,           // 7 seconds
+                    message: "Medium Mode"
+                };
+            }
+            // Getting Harder (30-49 points)
+            else if (score < 50) {
+                return {
+                    size: 25,             // 5x5 grid
+                    difference: 25,        // More subtle
+                    time: 6000,           // 6 seconds
+                    message: "Getting Harder!"
+                };
+            }
+            // Challenge Mode (50-74 points)
+            else if (score < 75) {
+                return {
+                    size: 36,             // 6x6 grid
+                    difference: 20,        // Subtle
+                    time: 5000,           // 5 seconds
+                    message: "Challenge Mode"
+                };
+            }
+            // Expert Mode (75-99 points)
+            else if (score < 100) {
+                return {
+                    size: 49,             // 7x7 grid
+                    difference: 15,        // Very subtle
+                    time: 4000,           // 4 seconds
+                    message: "Expert Mode!"
+                };
+            }
+            // Master Mode (100+ points)
+            else {
+                return {
+                    size: 64,             // 8x8 grid
+                    difference: 10,        // Extremely subtle
+                    time: 3500,           // 3.5 seconds
+                    message: "Master Mode!!!"
+                };
+            }
+        }
+
+        // Grid Creation Function
+        function createGrid() {
+            const grid = document.getElementById('colorGrid');
+            const config = getDifficultyConfig(score);
+            const gridDimension = Math.sqrt(config.size);
+            
+            document.getElementById('difficultyDisplay').textContent = config.message;
+            
+            grid.style.gridTemplateColumns = `repeat(${gridDimension}, 1fr)`;
+            grid.innerHTML = '';
+            
+            const baseColor = generateRandomColor();
+            const differentIndex = Math.floor(Math.random() * config.size);
+            const oddColor = baseColor.replace('50%', `${50 + config.difference}%`);
+
+            // Create and add cells to grid
+            for (let i = 0; i < config.size; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'color-cell';
+                cell.style.backgroundColor = i === differentIndex ? oddColor : baseColor;
+                cell.addEventListener('click', () => checkCell(i === differentIndex));
+                grid.appendChild(cell);
+            }
+
+            // Set round timer
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(endGame, config.time);
+        }
+
+        // Cell Click Handler
+        function checkCell(isCorrect) {
+            if (!gameActive) return;
+            
+            if (isCorrect) {
+                score++;
+                document.getElementById('scoreDisplay').textContent = score;
+                createGrid();
+            } else {
+                endGame();
+            }
+        }
+
+        // Game Over Handler
+        function endGame() {
+            gameActive = false;
+            document.getElementById('gameOver').style.display = 'block';
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('colorGrid').style.display = 'none';
+        }
+
+        // Game Start/Restart Handler
+        function startGame() {
+            score = 0;
+            gameActive = true;
+            document.getElementById('scoreDisplay').textContent = '0';
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('colorGrid').style.display = 'grid';
+            createGrid();
+        }
+
+        // Initialize game on page load
+        window.addEventListener('load', startGame);
+    </script>
+</body>
+</html>

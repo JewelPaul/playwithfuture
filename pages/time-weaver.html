@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Time Weaver - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Courier New', monospace;
+            cursor: none;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #timeline {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #timeline-marker {
+            position: absolute;
+            top: -8px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            cursor: pointer;
+            transition: box-shadow 0.3s;
+        }
+
+        .time-control {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .time-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .time-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        #time-stats {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            color: #fff;
+            text-align: right;
+        }
+
+        #time-cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            mix-blend-mode: difference;
+        }
+
+        .time-echo {
+            position: absolute;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        #moment-text {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-size: 24px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            text-align: center;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="time-control">
+        <button class="time-btn" onclick="toggleTimeflow()">Toggle Timeflow</button>
+        <button class="time-btn" onclick="createTimeFracture()">Create Fracture</button>
+        <button class="time-btn" onclick="stabilizeTime()">Stabilize</button>
+        <button class="time-btn" onclick="rewindTime()">Rewind</button>
+    </div>
+
+    <div id="time-stats">
+        Timeline Stability: <span id="stability">100</span>%<br>
+        Time Echoes: <span id="echoes">0</span><br>
+        Fractures: <span id="fractures">0</span>
+    </div>
+
+    <div id="timeline">
+        <div id="timeline-marker"></div>
+    </div>
+
+    <div id="time-cursor"></div>
+    <div id="moment-text"></div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const timelineMarker = document.getElementById('timeline-marker');
+        const timeCursor = document.getElementById('time-cursor');
+        const momentText = document.getElementById('moment-text');
+        const stabilityDisplay = document.getElementById('stability');
+        const echoesDisplay = document.getElementById('echoes');
+        const fracturesDisplay = document.getElementById('fractures');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        let timeParticles = [];
+        let timeEchoes = [];
+        let fractures = [];
+        let timeflowPaused = false;
+        let stability = 100;
+        let currentTime = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+        let timeLine = [];
+
+        class TimeParticle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.originX = x;
+                this.originY = y;
+                this.time = currentTime;
+                this.history = [];
+                this.size = Math.random() * 4 + 2;
+                this.color = `hsl(${Math.random() * 60 + 180}, 100%, 70%)`;
+                this.speed = Math.random() * 2 + 1;
+                this.angle = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                if (!timeflowPaused) {
+                    this.time++;
+                    this.history.push({x: this.x, y: this.y, time: this.time});
+                    if (this.history.length > 50) this.history.shift();
+
+                    this.angle += (Math.random() - 0.5) * 0.1;
+                    this.x += Math.cos(this.angle) * this.speed;
+                    this.y += Math.sin(this.angle) * this.speed;
+
+                    // Wrap around screen
+                    this.x = (this.x + width) % width;
+                    this.y = (this.y + height) % height;
+                }
+            }
+
+            draw() {
+                // Draw particle trail
+                ctx.beginPath();
+                ctx.moveTo(this.history[0]?.x, this.history[0]?.y);
+                this.history.forEach(point => {
+                    ctx.lineTo(point.x, point.y);
+                });
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.size / 2;
+                ctx.stroke();
+
+                // Draw particle
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+
+            rewind(amount) {
+                if (this.history.length > 0) {
+                    const past = this.history[this.history.length - amount];
+                    if (past) {
+                        this.x = past.x;
+                        this.y = past.y;
+                        this.history = this.history.slice(0, -amount);
+                    }
+                }
+            }
+        }
+
+        class TimeFracture {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 0;
+                this.maxRadius = Math.random() * 200 + 100;
+                this.growing = true;
+                this.color = `hsl(${Math.random() * 60 + 180}, 100%, 50%)`;
+            }
+
+            update() {
+                if (this.growing) {
+                    this.radius += 2;
+                    if (this.radius >= this.maxRadius) {
+                        this.growing = false;
+                    }
+                } else {
+                    this.radius -= 1;
+                }
+
+                // Affect nearby particles
+                timeParticles.forEach(particle => {
+                    const dx = particle.x - this.x;
+                    const dy = particle.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < this.radius) {
+                        particle.angle += Math.sin(currentTime * 0.1) * 0.1;
+                        particle.speed *= 1.01;
+                    }
+                });
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, 0,
+                    this.x, this.y, this.radius
+                );
+                gradient.addColorStop(0, `${this.color}44`);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+        }
+
+        function createTimeEcho() {
+            const echo = document.createElement('div');
+            echo.className = 'time-echo';
+            echo.style.left = mouseX + 'px';
+            echo.style.top = mouseY + 'px';
+            echo.style.width = '20px';
+            echo.style.height = '20px';
+            document.body.appendChild(echo);
+
+            let size = 20;
+            let opacity = 0.5;
+
+            const animate = () => {
+                size += 2;
+                opacity -= 0.01;
+                echo.style.width = size + 'px';
+                echo.style.height = size + 'px';
+                echo.style.left = (mouseX - size/2) + 'px';
+                echo.style.top = (mouseY - size/2) + 'px';
+                echo.style.opacity = opacity;
+
+                if (opacity > 0) {
+                    requestAnimationFrame(animate);
+                } else {
+                    echo.remove();
+                    timeEchoes = timeEchoes.filter(e => e !== echo);
+                }
+            };
+
+            timeEchoes.push(echo);
+            animate();
+        }
+
+        function toggleTimeflow() {
+            timeflowPaused = !timeflowPaused;
+            showMomentText(timeflowPaused ? "Time Frozen" : "Time Flowing");
+        }
+
+        function createTimeFracture() {
+            fractures.push(new TimeFracture(mouseX, mouseY));
+            stability = Math.max(stability - 10, 0);
+            showMomentText("Reality Fractured");
+        }
+
+        function stabilizeTime() {
+            stability = Math.min(stability + 30, 100);
+            timeParticles.forEach(particle => {
+                particle.speed = Math.random() * 2 + 1;
+            });
+            showMomentText("Timeline Stabilized");
+        }
+
+        function rewindTime() {
+            timeParticles.forEach(particle => particle.rewind(10));
+            showMomentText("Rewinding Time");
+        }
+
+        function showMomentText(text) {
+            momentText.textContent = text;
+            momentText.style.opacity = 1;
+            setTimeout(() => {
+                momentText.style.opacity = 0;
+            }, 2000);
+        }
+
+        function animate() {
+            currentTime++;
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Update and draw time particles
+            timeParticles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            // Update and draw fractures
+            fractures = fractures.filter(f => f.radius > 0);
+            fractures.forEach(fracture => {
+                fracture.update();
+                fracture.draw();
+            });
+
+            // Update timeline marker
+            const timePosition = (currentTime % 1000) / 1000;
+            timelineMarker.style.left = `${timePosition * 100}%`;
+            timelineMarker.style.boxShadow = `0 0 ${10 + Math.sin(currentTime * 0.1) * 5}px #fff`;
+
+            // Update stats
+            stabilityDisplay.textContent = Math.round(stability);
+            echoesDisplay.textContent = timeEchoes.length;
+            fracturesDisplay.textContent = fractures.length;
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize time particles
+        for (let i = 0; i < 100; i++) {
+            timeParticles.push(new TimeParticle(
+                Math.random() * width,
+                Math.random() * height
+            ));
+        }
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            timeCursor.style.left = mouseX + 'px';
+            timeCursor.style.top = mouseY + 'px';
+            if (!timeflowPaused) createTimeEcho();
+        });
+
+        animate();
+    </script>
+</body>
+</html>

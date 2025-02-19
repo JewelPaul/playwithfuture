@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Hexagons - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body {
+            background: #000;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .time-display {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: #ff00ff;
+            font-size: 1rem;
+            text-shadow: 0 0 10px #ff00ff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border: 1px solid #ff00ff;
+            border-radius: 5px;
+            z-index: 100;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            background: transparent;
+            color: #00ffff;
+            text-decoration: none;
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #00ffff;
+            z-index: 100;
+        }
+
+        .home-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 20px #00ffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="time-display" id="timeDisplay"></div>
+    <canvas id="canvas"></canvas>
+    <a href="../index.html" class="home-btn">HOME</a>
+
+    <script>
+        // Time Display Function - EXACTLY as in your ASCII art page
+        function updateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('timeDisplay').textContent = timeStr;
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Canvas Setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Hexagon Class
+        class Hexagon {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 30 + 20;
+                this.angle = 0;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+                this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                this.pulseSpeed = Math.random() * 0.05 + 0.02;
+                this.pulseAngle = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.angle += this.rotationSpeed;
+                this.pulseAngle += this.pulseSpeed;
+                const scaleFactor = 1 + Math.sin(this.pulseAngle) * 0.2;
+                this.currentSize = this.size * scaleFactor;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = (Math.PI * 2 / 6) * i;
+                    const x = Math.cos(angle) * this.currentSize;
+                    const y = Math.sin(angle) * this.currentSize;
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.closePath();
+                
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 20;
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+
+        // Create hexagons grid
+        const hexagons = [];
+        const spacing = 100;
+        for (let y = 0; y < canvas.height + spacing; y += spacing * 0.866) {
+            for (let x = 0; x < canvas.width + spacing; x += spacing) {
+                const offsetY = (Math.floor(x / spacing) % 2) * spacing * 0.433;
+                hexagons.push(new Hexagon(x, y + offsetY));
+            }
+        }
+
+        // Animation loop
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            hexagons.forEach(hex => {
+                hex.update();
+                hex.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse interaction
+        let mouseX = 0;
+        let mouseY = 0;
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            hexagons.forEach(hex => {
+                const dx = mouseX - hex.x;
+                const dy = mouseY - hex.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 200) {
+                    hex.rotationSpeed = (Math.random() - 0.5) * 0.1;
+                    hex.pulseSpeed = Math.random() * 0.1 + 0.05;
+                }
+            });
+        });
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>

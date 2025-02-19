@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Cards - TimePassIndia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body {
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .time-overlay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #00fff2;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00fff2;
+            border-radius: 5px;
+        }
+
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 500px;
+            margin: 80px auto 20px;
+        }
+
+        .card {
+            aspect-ratio: 3/4;
+            cursor: pointer;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            border: 2px solid #00fff2;
+            border-radius: 8px;
+            background: #000;
+            box-shadow: 0 0 10px rgba(0, 255, 242, 0.3);
+        }
+
+        .card-front {
+            color: #00fff2;
+            transform: rotateY(180deg);
+        }
+
+        .card-back {
+            background: #000510;
+            color: #00fff2;
+        }
+
+        .card.matched .card-front {
+            border-color: #00ff88;
+            box-shadow: 0 0 15px #00ff88;
+        }
+
+        .game-info {
+            text-align: center;
+            color: #00fff2;
+            margin: 20px;
+            font-size: 1.2em;
+        }
+
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #00fff2;
+            color: #000;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .home-btn:hover {
+            box-shadow: 0 0 15px #00fff2;
+        }
+
+        .restart-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 25px;
+            background: transparent;
+            color: #00fff2;
+            border: 2px solid #00fff2;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover {
+            background: #00fff2;
+            color: #000;
+            box-shadow: 0 0 15px #00fff2;
+        }
+    </style>
+</head>
+<body>
+    <div class="time-overlay" id="timeDisplay"></div>
+    
+    <div class="game-info">
+        Moves: <span id="moves">0</span> | 
+        Matches: <span id="matches">0</span>
+    </div>
+
+    <div class="memory-grid" id="grid"></div>
+    
+    <button class="restart-btn" onclick="game.resetGame()">Restart Game</button>
+    <a href="../index.html" class="home-btn">Home</a>
+
+    <script>
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('timeDisplay').textContent = 
+                now.toISOString().replace('T', ' ').split('.')[0];
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        class MemoryGame {
+            constructor() {
+                this.moves = 0;
+                this.matches = 0;
+                this.flippedCards = [];
+                this.isLocked = false;
+                this.symbols = ['★', '♦', '♠', '♣', '♥', '⬟', '⬢', '⬡'];
+                this.setupGame();
+            }
+
+            setupGame() {
+                const grid = document.getElementById('grid');
+                grid.innerHTML = '';
+                
+                // Double the symbols for pairs
+                const cards = [...this.symbols, ...this.symbols]
+                    .sort(() => Math.random() - 0.5);
+
+                cards.forEach(symbol => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div class="card-face card-front">${symbol}</div>
+                        <div class="card-face card-back">?</div>
+                    `;
+                    card.dataset.symbol = symbol;
+                    card.addEventListener('click', () => this.flipCard(card));
+                    grid.appendChild(card);
+                });
+            }
+
+            flipCard(card) {
+                if (this.isLocked || 
+                    card.classList.contains('flipped') || 
+                    card.classList.contains('matched')) return;
+
+                card.classList.add('flipped');
+                this.flippedCards.push(card);
+
+                if (this.flippedCards.length === 2) {
+                    this.moves++;
+                    document.getElementById('moves').textContent = this.moves;
+                    this.checkMatch();
+                }
+            }
+
+            checkMatch() {
+                this.isLocked = true;
+                const [card1, card2] = this.flippedCards;
+
+                if (card1.dataset.symbol === card2.dataset.symbol) {
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    this.matches++;
+                    document.getElementById('matches').textContent = this.matches;
+
+                    if (this.matches === this.symbols.length) {
+                        setTimeout(() => alert('You Won! 🎉'), 500);
+                    }
+                } else {
+                    setTimeout(() => {
+                        card1.classList.remove('flipped');
+                        card2.classList.remove('flipped');
+                    }, 1000);
+                }
+
+                setTimeout(() => {
+                    this.flippedCards = [];
+                    this.isLocked = false;
+                }, 1000);
+            }
+
+            resetGame() {
+                this.moves = 0;
+                this.matches = 0;
+                this.flippedCards = [];
+                this.isLocked = false;
+                document.getElementById('moves').textContent = '0';
+                document.getElementById('matches').textContent = '0';
+                this.setupGame();
+            }
+        }
+
+        let game = new MemoryGame();
+    </script>
+</body>
+</html>

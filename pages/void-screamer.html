@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Void Screamer - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            cursor: none;
+            font-family: 'Arial', sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #void-stats {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            font-family: monospace;
+            font-size: 14px;
+            text-shadow: 0 0 10px #f00;
+            z-index: 100;
+        }
+
+        .void-control {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .void-btn {
+            background: rgba(255,0,0,0.2);
+            color: #fff;
+            border: 1px solid #f00;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.3s;
+            text-shadow: 0 0 5px #f00;
+        }
+
+        .void-btn:hover {
+            background: rgba(255,0,0,0.4);
+            transform: scale(1.05);
+        }
+
+        #cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f00;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        #warning {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #f00;
+            font-family: monospace;
+            font-size: 24px;
+            text-shadow: 0 0 10px #f00;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div id="cursor"></div>
+    <div id="void-stats">
+        Void Energy: <span id="energy">0</span>%<br>
+        Entities: <span id="entities">0</span><br>
+        Stability: <span id="stability">100</span>%
+    </div>
+    <div class="void-control">
+        <button class="void-btn" onclick="summonVoidEntity()">Summon Entity</button>
+        <button class="void-btn" onclick="unleashChaos()">Unleash Chaos</button>
+        <button class="void-btn" onclick="stabilizeVoid()">Stabilize</button>
+    </div>
+    <div id="warning">⚠ VOID STABILITY CRITICAL ⚠</div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('cursor');
+        const warning = document.getElementById('warning');
+        const energyDisplay = document.getElementById('energy');
+        const entitiesDisplay = document.getElementById('entities');
+        const stabilityDisplay = document.getElementById('stability');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        let mouseX = width / 2;
+        let mouseY = height / 2;
+        let voidEnergy = 0;
+        let voidStability = 100;
+        let entities = [];
+        let time = 0;
+        let chaosMode = false;
+
+        class VoidEntity {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 30 + 10;
+                this.speed = Math.random() * 2 + 1;
+                this.angle = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.1;
+                this.vertices = Math.floor(Math.random() * 5) + 3;
+                this.distortion = 0;
+                this.lifeTime = 1;
+                this.trail = [];
+                this.color = `hsl(${Math.random() * 60 + 300}, 100%, 50%)`;
+            }
+
+            update() {
+                this.lifeTime -= 0.001;
+                if (chaosMode) {
+                    this.distortion += 0.1;
+                    this.speed *= 1.001;
+                }
+
+                this.trail.unshift({x: this.x, y: this.y});
+                if (this.trail.length > 20) this.trail.pop();
+
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 200) {
+                    this.angle = Math.atan2(dy, dx);
+                    this.speed += 0.1;
+                }
+
+                this.angle += this.rotationSpeed + Math.sin(time) * 0.1;
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+
+                // Screen wrap
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+            }
+
+            draw() {
+                // Draw trail
+                ctx.beginPath();
+                ctx.moveTo(this.trail[0]?.x, this.trail[0]?.y);
+                this.trail.forEach((point, i) => {
+                    ctx.lineTo(point.x, point.y);
+                });
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.size / 5;
+                ctx.stroke();
+
+                // Draw entity
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(time);
+
+                ctx.beginPath();
+                for (let i = 0; i < this.vertices; i++) {
+                    const angle = (i / this.vertices) * Math.PI * 2;
+                    const radius = this.size + Math.sin(time * 5 + i) * this.distortion;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.restore();
+            }
+        }
+
+        function summonVoidEntity() {
+            const entity = new VoidEntity(
+                Math.random() * width,
+                Math.random() * height
+            );
+            entities.push(entity);
+            voidEnergy = Math.min(voidEnergy + 5, 100);
+            voidStability = Math.max(voidStability - 2, 0);
+            updateStats();
+        }
+
+        function unleashChaos() {
+            chaosMode = true;
+            voidStability = Math.max(voidStability - 20, 0);
+            for (let i = 0; i < 10; i++) {
+                summonVoidEntity();
+            }
+            warning.style.opacity = '1';
+        }
+
+        function stabilizeVoid() {
+            chaosMode = false;
+            voidStability = Math.min(voidStability + 30, 100);
+            voidEnergy = Math.max(voidEnergy - 20, 0);
+            warning.style.opacity = '0';
+            updateStats();
+        }
+
+        function updateStats() {
+            energyDisplay.textContent = Math.round(voidEnergy);
+            entitiesDisplay.textContent = entities.length;
+            stabilityDisplay.textContent = Math.round(voidStability);
+        }
+
+        function animate() {
+            time += 0.01;
+            ctx.fillStyle = `rgba(0,0,0,${chaosMode ? 0.1 : 0.3})`;
+            ctx.fillRect(0, 0, width, height);
+
+            entities = entities.filter(e => e.lifeTime > 0);
+            entities.forEach(entity => {
+                entity.update();
+                entity.draw();
+            });
+
+            // Update cursor
+            const cursorSize = 20 + Math.sin(time * 5) * 5;
+            cursor.style.width = cursorSize + 'px';
+            cursor.style.height = cursorSize + 'px';
+            cursor.style.boxShadow = `0 0 ${voidEnergy/2}px #f00`;
+
+            updateStats();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
+        });
+
+        animate();
+    </script>
+</body>
+</html>

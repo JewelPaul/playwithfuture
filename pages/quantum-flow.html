@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Flow - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: #090418;
+            overflow: hidden;
+        }
+
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .time-display {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+
+        .score-container {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .score, .high-score {
+            font-size: 1.2rem;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            color: #fff;
+            display: none;
+            z-index: 100;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .home-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .power-meter {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        .power-level {
+            width: 100%;
+            height: 100%;
+            background: #4CAF50;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="timeDisplay" class="time-display"></div>
+    <div class="score-container">
+        <div class="score">Score: <span id="score">0</span></div>
+        <div class="high-score">Best: <span id="highScore">0</span></div>
+    </div>
+    <div class="power-meter">
+        <div id="powerLevel" class="power-level"></div>
+    </div>
+    <div id="gameOver" class="game-over">
+        <h2>Game Over!</h2>
+        <p>Final Score: <span id="finalScore">0</span></p>
+        <p>Best Score: <span id="endHighScore">0</span></p>
+        <button class="restart-btn" onclick="restartGame()">Play Again</button>
+    </div>
+    <a href="../index.html" class="home-btn">HOME</a>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let highScore = localStorage.getItem('quantumHighScore') || 0;
+        let gameActive = true;
+        let power = 100;
+        let particles = [];
+        let targets = [];
+        let mousePos = { x: 0, y: 0 };
+        let lastTargetTime = 0;
+
+        // Update displays
+        document.getElementById('highScore').textContent = highScore;
+
+        // Time display - clean format only
+        function updateTime() {
+            const now = new Date();
+            const formatted = now.getFullYear() + '-' +
+                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                String(now.getDate()).padStart(2, '0') + ' ' +
+                String(now.getHours()).padStart(2, '0') + ':' +
+                String(now.getMinutes()).padStart(2, '0') + ':' +
+                String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('timeDisplay').textContent = formatted;
+        }
+
+        class Particle {
+            constructor(x, y, targetX, targetY) {
+                this.x = x;
+                this.y = y;
+                this.size = 2;
+                this.targetX = targetX;
+                this.targetY = targetY;
+                this.speed = 15;
+                this.trail = [];
+                this.maxTrailLength = 20;
+                this.color = `hsl(${Math.random() * 60 + 180}, 100%, 50%)`;
+            }
+
+            update() {
+                // Add current position to trail
+                this.trail.unshift({ x: this.x, y: this.y });
+                if (this.trail.length > this.maxTrailLength) {
+                    this.trail.pop();
+                }
+
+                // Move towards target
+                const dx = this.targetX - this.x;
+                const dy = this.targetY - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist > this.speed) {
+                    this.x += (dx / dist) * this.speed;
+                    this.y += (dy / dist) * this.speed;
+                    return false;
+                } else {
+                    this.x = this.targetX;
+                    this.y = this.targetY;
+                    return true;
+                }
+            }
+
+            draw() {
+                // Draw trail
+                ctx.beginPath();
+                ctx.moveTo(this.trail[0].x, this.trail[0].y);
+                for (let i = 1; i < this.trail.length; i++) {
+                    ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                }
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+
+                // Draw particle
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                
+                // Glow effect
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        class Target {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                const side = Math.floor(Math.random() * 4);
+                switch(side) {
+                    case 0: // top
+                        this.x = Math.random() * canvas.width;
+                        this.y = -20;
+                        break;
+                    case 1: // right
+                        this.x = canvas.width + 20;
+                        this.y = Math.random() * canvas.height;
+                        break;
+                    case 2: // bottom
+                        this.x = Math.random() * canvas.width;
+                        this.y = canvas.height + 20;
+                        break;
+                    case 3: // left
+                        this.x = -20;
+                        this.y = Math.random() * canvas.height;
+                        break;
+                }
+                this.size = 15;
+                this.timeLeft = 100;
+                this.color = `hsl(${Math.random() * 60 + 180}, 100%, 50%)`;
+            }
+
+            update() {
+                this.timeLeft--;
+                return this.timeLeft > 0;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Inner circle
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * 0.5, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                
+                // Glow effect
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function spawnTarget() {
+            if (Date.now() - lastTargetTime > 1000) {
+                targets.push(new Target());
+                lastTargetTime = Date.now();
+            }
+        }
+
+        function gameOver() {
+            gameActive = false;
+            document.getElementById('gameOver').style.display = 'block';
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('endHighScore').textContent = highScore;
+        }
+
+        function restartGame() {
+            gameActive = true;
+            score = 0;
+            power = 100;
+            particles = [];
+            targets = [];
+            document.getElementById('score').textContent = score;
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('powerLevel').style.width = '100%';
+        }
+
+        function updateGame() {
+            if (!gameActive) return;
+
+            // Spawn new targets
+            spawnTarget();
+
+            // Update power
+            power = Math.min(100, power + 0.2);
+            document.getElementById('powerLevel').style.width = power + '%';
+
+            // Update targets
+            targets = targets.filter(target => target.update());
+
+            // Update particles
+            particles = particles.filter(particle => !particle.update());
+
+            // Check for hits
+            targets.forEach((target, targetIndex) => {
+                particles.forEach((particle, particleIndex) => {
+                    const dx = particle.x - target.x;
+                    const dy = particle.y - target.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < target.size) {
+                        targets.splice(targetIndex, 1);
+                        particles.splice(particleIndex, 1);
+                        score += 10;
+                        if (score > highScore) {
+                            highScore = score;
+                            localStorage.setItem('quantumHighScore', highScore);
+                            document.getElementById('highScore').textContent = highScore;
+                        }
+                        document.getElementById('score').textContent = score;
+                    }
+                });
+            });
+
+            // Check for missed targets
+            targets.forEach(target => {
+                if (target.timeLeft <= 0) {
+                    gameOver();
+                }
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(9, 4, 24, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => particle.draw());
+            targets.forEach(target => target.draw());
+
+            // Draw cursor
+            ctx.beginPath();
+            ctx.arc(mousePos.x, mousePos.y, 10, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.stroke();
+        }
+
+        function animate() {
+            updateGame();
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            mousePos.x = e.clientX;
+            mousePos.y = e.clientY;
+        });
+
+        canvas.addEventListener('click', () => {
+            if (!gameActive) return;
+            
+            if (power >= 10) {
+                power -= 10;
+                document.getElementById('powerLevel').style.width = power + '%';
+                
+                targets.forEach(target => {
+                    particles.push(new Particle(mousePos.x, mousePos.y, target.x, target.y));
+                });
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            mousePos.x = e.touches[0].clientX;
+            mousePos.y = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!gameActive) return;
+            
+            if (power >= 10) {
+                power -= 10;
+                document.getElementById('powerLevel').style.width = power + '%';
+                
+                targets.forEach(target => {
+                    particles.push(new Particle(mousePos.x, mousePos.y, target.x, target.y));
+                });
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Start game
+        setInterval(updateTime, 1000);
+        updateTime();
+        animate();
+    </script>
+</body>
+</html>

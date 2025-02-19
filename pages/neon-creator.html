@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Creator - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body {
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .time-display {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: #ff00ff;
+            font-size: 1rem;
+            text-shadow: 0 0 10px #ff00ff;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border: 1px solid #ff00ff;
+            border-radius: 5px;
+            z-index: 100;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 60px auto 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .control-group {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-group h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ff69b4;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            color: #00ffff;
+            font-size: 1rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            color: #00ffff;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        select option {
+            background: #000;
+            color: #00ffff;
+            padding: 10px;
+        }
+
+        select option:hover {
+            background: rgba(0, 255, 255, 0.2);
+        }
+
+        select:focus {
+            border-color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            outline: none;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 5px;
+            background: none;
+        }
+
+        .preview-area {
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px auto;
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .neon-text {
+            font-family: 'Share Tech Mono', monospace;
+            transition: all 0.3s ease;
+            text-align: center;
+            padding: 20px;
+            word-wrap: break-word;
+        }
+
+        .preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .preset-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            color: #000;
+        }
+
+        .home-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            background: transparent;
+            color: #00ffff;
+            text-decoration: none;
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 10px #00ffff;
+            z-index: 100;
+        }
+
+        .home-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 20px #00ffff;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-area {
+                min-height: 200px;
+            }
+
+            .neon-text {
+                font-size: 40px !important;
+            }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes flicker {
+            0% { opacity: 1; }
+            19% { opacity: 1; }
+            20% { opacity: 0.4; }
+            21% { opacity: 1; }
+            59% { opacity: 1; }
+            60% { opacity: 0.6; }
+            61% { opacity: 1; }
+            89% { opacity: 1; }
+            90% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .flicker {
+            animation: flicker 3s infinite;
+        }
+
+        .rainbow {
+            animation: rainbow 3s linear infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="time-display" id="timeDisplay"></div>
+
+    <div class="controls">
+        <div class="control-group">
+            <h3>Text Settings</h3>
+            <div class="input-group">
+                <label>Your Text</label>
+                <input type="text" id="textInput" value="Neon Dreams" maxlength="30">
+            </div>
+            <div class="input-group">
+                <label>Font Size (px)</label>
+                <input type="number" id="sizeInput" value="60" min="20" max="200">
+            </div>
+            <div class="input-group">
+                <label>Primary Color</label>
+                <input type="color" id="colorInput" value="#ff00ff">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Glow Effects</h3>
+            <div class="input-group">
+                <label>Glow Color</label>
+                <input type="color" id="glowColorInput" value="#ff00ff">
+            </div>
+            <div class="input-group">
+                <label>Glow Intensity</label>
+                <input type="number" id="glowInput" value="20" min="0" max="100">
+            </div>
+            <div class="input-group">
+                <label>Animation</label>
+                <select id="animationInput">
+                    <option value="none">None</option>
+                    <option value="pulse">Pulse</option>
+                    <option value="flicker">Flicker</option>
+                    <option value="rainbow">Rainbow</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Quick Presets</h3>
+            <div class="preset-buttons">
+                <button class="preset-btn" style="background: #ff00ff" onclick="applyPreset('retro')">Retro</button>
+                <button class="preset-btn" style="background: #00ffff" onclick="applyPreset('cyber')">Cyber</button>
+                <button class="preset-btn" style="background: #ff0000" onclick="applyPreset('hot')">Hot</button>
+                <button class="preset-btn" style="background: #00ff00" onclick="applyPreset('matrix')">Matrix</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="preview-area">
+        <div id="neonText" class="neon-text">Neon Dreams</div>
+    </div>
+
+    <a href="../index.html" class="home-btn">HOME</a>
+
+    <script>
+        // Time Display Function
+        function updateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const timeStr = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('timeDisplay').textContent = timeStr;
+        }
+
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Neon Text Controls
+        const textInput = document.getElementById('textInput');
+        const sizeInput = document.getElementById('sizeInput');
+        const colorInput = document.getElementById('colorInput');
+        const glowColorInput = document.getElementById('glowColorInput');
+        const glowInput = document.getElementById('glowInput');
+        const animationInput = document.getElementById('animationInput');
+        const neonText = document.getElementById('neonText');
+
+        function updateNeonText() {
+            const text = textInput.value;
+            const size = sizeInput.value + 'px';
+            const color = colorInput.value;
+            const glowColor = glowColorInput.value;
+            const glowSize = glowInput.value + 'px';
+            const animation = animationInput.value;
+
+            neonText.textContent = text;
+            neonText.style.fontSize = size;
+            neonText.style.color = color;
+            neonText.style.textShadow = `0 0 ${glowSize} ${glowColor}`;
+
+            // Remove previous animations
+            neonText.className = 'neon-text';
+
+            // Apply new animation
+            if (animation !== 'none') {
+                neonText.classList.add(animation);
+            }
+        }
+
+        // Add event listeners to all inputs
+        [textInput, sizeInput, colorInput, glowColorInput, glowInput, animationInput].forEach(input => {
+            input.addEventListener('input', updateNeonText);
+        });
+
+        // Presets
+        const presets = {
+            retro: {
+                text: "RETRO VIBES",
+                size: "70",
+                color: "#ff00ff",
+                glowColor: "#ff00ff",
+                glow: "30",
+                animation: "pulse"
+            },
+            cyber: {
+                text: "CYBER",
+                size: "80",
+                color: "#00ffff",
+                glowColor: "#00ffff",
+                glow: "40",
+                animation: "flicker"
+            },
+            hot: {
+                text: "HOT STUFF",
+                size: "65",
+                color: "#ff0000",
+                glowColor: "#ff0000",
+                glow: "35",
+                animation: "pulse"
+            },
+            matrix: {
+                text: "MATRIX",
+                size: "75",
+                color: "#00ff00",
+                glowColor: "#00ff00",
+                glow: "25",
+                animation: "rainbow"
+            }
+        };
+
+        function applyPreset(presetName) {
+            const preset = presets[presetName];
+            textInput.value = preset.text;
+            sizeInput.value = preset.size;
+            colorInput.value = preset.color;
+            glowColorInput.value = preset.glowColor;
+            glowInput.value = preset.glow;
+            animationInput.value = preset.animation;
+            updateNeonText();
+        }
+
+        // Initial update
+        updateNeonText();
+    </script>
+</body>
+</html>

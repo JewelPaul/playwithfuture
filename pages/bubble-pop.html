@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bubble Pop Adventure - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #60a5fa, #3730a3);
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #game-container {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            animation: float 3s infinite ease-in-out;
+            transition: transform 0.2s;
+        }
+
+        .bubble::before {
+            content: '';
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            top: 20%;
+            left: 20%;
+        }
+
+        .bubble:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .score-panel {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            display: flex;
+            justify-content: space-around;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .power-up {
+            position: absolute;
+            animation: powerUpFloat 4s infinite ease-in-out;
+            cursor: pointer;
+            font-size: 2em;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+        }
+
+        @keyframes powerUpFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(10px, -30px) rotate(10deg); }
+        }
+
+        .combo-text {
+            position: absolute;
+            color: white;
+            font-size: 2em;
+            font-weight: bold;
+            pointer-events: none;
+            animation: comboFloat 1s forwards;
+        }
+
+        @keyframes comboFloat {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1) translateY(-50px); opacity: 0; }
+        }
+
+        #pause-menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.95);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+        }
+
+        .menu-btn {
+            background: #3730a3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: transform 0.2s;
+        }
+
+        .menu-btn:hover {
+            transform: scale(1.05);
+        }
+
+        #level-banner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="score-panel">
+        <div class="score-item">
+            <div>Score</div>
+            <div id="score">0</div>
+        </div>
+        <div class="score-item">
+            <div>Level</div>
+            <div id="level">1</div>
+        </div>
+        <div class="score-item">
+            <div>Combo</div>
+            <div id="combo">x1</div>
+        </div>
+        <div class="score-item">
+            <div>Time</div>
+            <div id="timer">60</div>
+        </div>
+    </div>
+
+    <div id="game-container"></div>
+    
+    <div id="pause-menu">
+        <h2>Game Paused</h2>
+        <p>Score: <span id="pause-score">0</span></p>
+        <button class="menu-btn" onclick="resumeGame()">Resume</button>
+        <button class="menu-btn" onclick="resetGame()">New Game</button>
+    </div>
+
+    <div id="level-banner"></div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        let score = 0;
+        let level = 1;
+        let combo = 1;
+        let lastPopTime = 0;
+        let gameTimer;
+        let timeLeft = 60;
+        let isPaused = false;
+        let activePowerUps = new Set();
+
+        const bubbleTypes = [
+            { emoji: '🌟', points: 10, color: '#ffd700' },
+            { emoji: '💎', points: 20, color: '#00bcd4' },
+            { emoji: '🌈', points: 30, color: '#ff4081' },
+            { emoji: '⚡', points: 40, color: '#ff9800' },
+            { emoji: '🎯', points: 50, color: '#4caf50' }
+        ];
+
+        const powerUps = [
+            { emoji: '⏰', effect: 'time', chance: 0.1 },
+            { emoji: '✨', effect: 'multiplier', chance: 0.05 },
+            { emoji: '🎯', effect: 'accuracy', chance: 0.08 }
+        ];
+
+        function createBubble() {
+            if (isPaused) return;
+
+            const bubble = document.createElement('div');
+            const type = bubbleTypes[Math.floor(Math.random() * bubbleTypes.length)];
+            const size = 40 + Math.random() * 40;
+
+            bubble.className = 'bubble';
+            bubble.innerHTML = type.emoji;
+            bubble.style.width = size + 'px';
+            bubble.style.height = size + 'px';
+            bubble.style.background = type.color;
+            bubble.style.left = Math.random() * (window.innerWidth - size) + 'px';
+            bubble.style.top = window.innerHeight + 'px';
+            bubble.dataset.points = type.points;
+
+            gameContainer.appendChild(bubble);
+
+            const duration = 4000 + Math.random() * 2000;
+            const startTime = Date.now();
+
+            function animate() {
+                if (isPaused) return;
+
+                const progress = (Date.now() - startTime) / duration;
+                if (progress >= 1) {
+                    bubble.remove();
+                    reduceCombo();
+                    return;
+                }
+
+                bubble.style.top = (window.innerHeight - progress * window.innerHeight * 1.2) + 'px';
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+            bubble.addEventListener('click', () => popBubble(bubble));
+
+            // Maybe spawn a power-up
+            if (Math.random() < 0.1) {
+                spawnPowerUp();
+            }
+        }
+
+        function popBubble(bubble) {
+            const points = parseInt(bubble.dataset.points);
+            const now = Date.now();
+
+            if (now - lastPopTime < 500) {
+                combo = Math.min(combo + 0.5, 5);
+            } else {
+                combo = Math.max(1, combo - 0.5);
+            }
+
+            const finalPoints = Math.round(points * combo);
+            score += finalPoints;
+            lastPopTime = now;
+
+            // Visual feedback
+            const comboText = document.createElement('div');
+            comboText.className = 'combo-text';
+            comboText.textContent = `+${finalPoints}`;
+            comboText.style.left = bubble.style.left;
+            comboText.style.top = bubble.style.top;
+            gameContainer.appendChild(comboText);
+            setTimeout(() => comboText.remove(), 1000);
+
+            bubble.style.animation = 'pop 0.3s forwards';
+            setTimeout(() => bubble.remove(), 300);
+
+            updateScoreDisplay();
+            checkLevelUp();
+        }
+
+        function spawnPowerUp() {
+            const powerUp = powerUps[Math.floor(Math.random() * powerUps.length)];
+            if (Math.random() > powerUp.chance) return;
+
+            const element = document.createElement('div');
+            element.className = 'power-up';
+            element.innerHTML = powerUp.emoji;
+            element.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+            element.style.top = Math.random() * (window.innerHeight - 50) + 'px';
+
+            element.addEventListener('click', () => {
+                activatePowerUp(powerUp.effect);
+                element.remove();
+            });
+
+            gameContainer.appendChild(element);
+            setTimeout(() => element.remove(), 5000);
+        }
+
+        function activatePowerUp(effect) {
+            if (activePowerUps.has(effect)) return;
+            
+            activePowerUps.add(effect);
+            showLevelBanner(`${effect.toUpperCase()} ACTIVATED!`);
+
+            switch(effect) {
+                case 'time':
+                    timeLeft += 10;
+                    break;
+                case 'multiplier':
+                    combo *= 2;
+                    setTimeout(() => {
+                        combo /= 2;
+                        activePowerUps.delete(effect);
+                    }, 5000);
+                    break;
+                case 'accuracy':
+                    // Make bubbles move slower
+                    setTimeout(() => activePowerUps.delete(effect), 5000);
+                    break;
+            }
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('combo').textContent = `x${combo.toFixed(1)}`;
+            document.getElementById('level').textContent = level;
+        }
+
+        function checkLevelUp() {
+            if (score >= level * 1000) {
+                level++;
+                showLevelBanner(`Level ${level}!`);
+                timeLeft += 10;
+            }
+        }
+
+        function showLevelBanner(text) {
+            const banner = document.getElementById('level-banner');
+            banner.textContent = text;
+            banner.style.opacity = 1;
+            setTimeout(() => banner.style.opacity = 0, 2000);
+        }
+
+        function reduceCombo() {
+            combo = Math.max(1, combo - 0.2);
+            updateScoreDisplay();
+        }
+
+        function updateTimer() {
+            if (isPaused) return;
+            
+            timeLeft--;
+            document.getElementById('timer').textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            isPaused = true;
+            clearInterval(gameTimer);
+            showLevelBanner('Game Over!');
+            setTimeout(() => {
+                document.getElementById('pause-menu').style.display = 'block';
+                document.getElementById('pause-score').textContent = score;
+            }, 2000);
+        }
+
+        function resumeGame() {
+            isPaused = false;
+            document.getElementById('pause-menu').style.display = 'none';
+        }
+
+        function resetGame() {
+            score = 0;
+            level = 1;
+            combo = 1;
+            timeLeft = 60;
+            isPaused = false;
+            activePowerUps.clear();
+            
+            gameContainer.innerHTML = '';
+            document.getElementById('pause-menu').style.display = 'none';
+            updateScoreDisplay();
+            
+            clearInterval(gameTimer);
+            gameTimer = setInterval(updateTimer, 1000);
+        }
+
+        // Start spawning bubbles
+        setInterval(createBubble, 1000);
+        gameTimer = setInterval(updateTimer, 1000);
+
+        // Pause when window loses focus
+        window.addEventListener('blur', () => {
+            isPaused = true;
+            document.getElementById('pause-menu').style.display = 'block';
+        });
+    </script>
+</body>
+</html>

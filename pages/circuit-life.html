@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Circuit Life - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            background: #001122;
+            font-family: monospace;
+            color: #0f0;
+        }
+
+        .grid {
+            display: grid;
+            gap: 2px;
+            padding: 20px;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .cell.active {
+            background: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        .cell.data {
+            color: #fff;
+            font-size: 12px;
+        }
+
+        .wire {
+            position: absolute;
+            background: #0f0;
+            opacity: 0.5;
+        }
+
+        #toolbar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: rgba(0,255,0,0.1);
+            padding: 15px;
+            border: 1px solid #0f0;
+        }
+
+        .component {
+            padding: 8px;
+            background: none;
+            border: 1px solid #0f0;
+            color: #0f0;
+            cursor: pointer;
+        }
+
+        .component:hover {
+            background: rgba(0,255,0,0.2);
+        }
+
+        #monitor {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border: 1px solid #0f0;
+            font-size: 12px;
+        }
+
+        .data-flow {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid" id="grid"></div>
+    
+    <div id="toolbar">
+        <button class="component" onclick="setComponent('processor')">⚡ Processor</button>
+        <button class="component" onclick="setComponent('memory')">💾 Memory</button>
+        <button class="component" onclick="setComponent('io')">🔌 I/O Port</button>
+        <button class="component" onclick="setComponent('wire')">➖ Wire</button>
+        <button class="component" onclick="clearCircuit()">🗑️ Clear</button>
+        <button class="component" onclick="startSimulation()">▶️ Start</button>
+        <button class="component" onclick="stopSimulation()">⏹️ Stop</button>
+    </div>
+
+    <div id="monitor">
+        System Status: <span id="status">Idle</span><br>
+        Active Processes: <span id="processes">0</span><br>
+        Memory Usage: <span id="memory">0%</span><br>
+        Data Flow: <span id="dataflow">0 b/s</span>
+    </div>
+
+    <script>
+        const GRID_SIZE = 12;
+        const grid = document.getElementById('grid');
+        grid.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 40px)`;
+
+        let currentComponent = 'processor';
+        let cells = [];
+        let isSimulationRunning = false;
+        let firstWireCell = null;
+        let processes = 0;
+        let memoryUsage = 0;
+        let dataFlowRate = 0;
+
+        // Create grid
+        for(let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.index = i;
+            cell.addEventListener('click', () => placeComponent(cell));
+            grid.appendChild(cell);
+            cells.push({
+                element: cell,
+                type: null,
+                connections: [],
+                data: 0,
+                isProcessing: false
+            });
+        }
+
+        function setComponent(type) {
+            currentComponent = type;
+            document.querySelectorAll('.component').forEach(btn => 
+                btn.style.background = 'none');
+            event.target.style.background = 'rgba(0,255,0,0.2)';
+        }
+
+        function placeComponent(cell) {
+            const index = parseInt(cell.dataset.index);
+            
+            if(currentComponent === 'wire') {
+                if(!firstWireCell) {
+                    firstWireCell = cells[index];
+                    cell.style.background = 'rgba(0,255,0,0.5)';
+                } else {
+                    createWire(firstWireCell, cells[index]);
+                    firstWireCell = null;
+                }
+                return;
+            }
+
+            cells[index].type = currentComponent;
+            cell.className = 'cell active';
+            
+            switch(currentComponent) {
+                case 'processor':
+                    cell.innerHTML = '⚡';
+                    break;
+                case 'memory':
+                    cell.innerHTML = '💾';
+                    cell.classList.add('data');
+                    cells[index].data = Math.floor(Math.random() * 256);
+                    updateCellData(cells[index]);
+                    break;
+                case 'io':
+                    cell.innerHTML = '🔌';
+                    break;
+            }
+        }
+
+        function createWire(cell1, cell2) {
+            const wire = document.createElement('div');
+            wire.className = 'wire';
+            
+            const rect1 = cell1.element.getBoundingClientRect();
+            const rect2 = cell2.element.getBoundingClientRect();
+            
+            const x1 = rect1.left + rect1.width / 2;
+            const y1 = rect1.top + rect1.height / 2;
+            const x2 = rect2.left + rect2.width / 2;
+            const y2 = rect2.top + rect2.height / 2;
+            
+            const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            
+            wire.style.width = `${length}px`;
+            wire.style.height = '2px';
+            wire.style.left = `${x1}px`;
+            wire.style.top = `${y1}px`;
+            wire.style.transform = `rotate(${angle}rad)`;
+            wire.style.transformOrigin = 'left';
+            
+            document.body.appendChild(wire);
+            
+            cell1.connections.push(cell2);
+            cell2.connections.push(cell1);
+        }
+
+        function updateCellData(cell) {
+            if(cell.type === 'memory') {
+                cell.element.innerHTML = `💾\n${cell.data}`;
+            }
+        }
+
+        function createDataFlow(from, to) {
+            const flow = document.createElement('div');
+            flow.className = 'data-flow';
+            document.body.appendChild(flow);
+
+            const rect1 = from.element.getBoundingClientRect();
+            const rect2 = to.element.getBoundingClientRect();
+            
+            const startX = rect1.left + rect1.width / 2;
+            const startY = rect1.top + rect1.height / 2;
+            const endX = rect2.left + rect2.width / 2;
+            const endY = rect2.top + rect2.height / 2;
+
+            let progress = 0;
+            
+            function animate() {
+                progress += 0.02;
+                
+                const x = startX + (endX - startX) * progress;
+                const y = startY + (endY - startY) * progress;
+                
+                flow.style.left = `${x}px`;
+                flow.style.top = `${y}px`;
+                
+                if(progress >= 1) {
+                    flow.remove();
+                    return;
+                }
+                
+                requestAnimationFrame(animate);
+            }
+            
+            animate();
+        }
+
+        function processData(cell) {
+            if(!cell.isProcessing && cell.type === 'processor') {
+                cell.isProcessing = true;
+                cell.element.style.transform = 'scale(1.1)';
+                
+                setTimeout(() => {
+                    cell.isProcessing = false;
+                    cell.element.style.transform = 'scale(1)';
+                    
+                    cell.connections.forEach(connection => {
+                        if(connection.type === 'memory') {
+                            connection.data = (connection.data + 1) % 256;
+                            updateCellData(connection);
+                            createDataFlow(cell, connection);
+                            dataFlowRate++;
+                        }
+                    });
+                }, 1000);
+            }
+        }
+
+        function simulate() {
+            if(!isSimulationRunning) return;
+
+            cells.forEach(cell => {
+                if(cell.type === 'processor') {
+                    processData(cell);
+                }
+            });
+
+            processes = cells.filter(c => c.isProcessing).length;
+            memoryUsage = Math.round(cells.filter(c => c.type === 'memory')
+                                        .reduce((acc, c) => acc + c.data, 0) / 
+                                   (cells.filter(c => c.type === 'memory').length * 255) * 100) || 0;
+
+            document.getElementById('processes').textContent = processes;
+            document.getElementById('memory').textContent = `${memoryUsage}%`;
+            document.getElementById('dataflow').textContent = `${dataFlowRate} b/s`;
+            dataFlowRate = 0;
+
+            setTimeout(simulate, 100);
+        }
+
+        function startSimulation() {
+            if(!isSimulationRunning) {
+                isSimulationRunning = true;
+                document.getElementById('status').textContent = 'Running';
+                simulate();
+            }
+        }
+
+        function stopSimulation() {
+            isSimulationRunning = false;
+            document.getElementById('status').textContent = 'Stopped';
+        }
+
+        function clearCircuit() {
+            cells.forEach(cell => {
+                cell.type = null;
+                cell.connections = [];
+                cell.data = 0;
+                cell.isProcessing = false;
+                cell.element.className = 'cell';
+                cell.element.innerHTML = '';
+            });
+            document.querySelectorAll('.wire').forEach(w => w.remove());
+            stopSimulation();
+        }
+    </script>
+</body>
+</html>

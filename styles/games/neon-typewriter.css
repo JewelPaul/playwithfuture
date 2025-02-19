@@ -1,0 +1,225 @@
+/* Base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+body {
+    background: #000;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 20px;
+}
+
+/* Time display */
+.time-overlay {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    color: #00fff2;
+    font-size: 1.2em;
+    text-shadow: 0 0 10px #00fff2;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border: 1px solid #00fff2;
+    border-radius: 5px;
+    z-index: 1000;
+}
+
+/* Input area */
+.input-container {
+    position: relative;
+    margin-bottom: 2rem;
+    width: 80%;
+    max-width: 600px;
+    z-index: 1;
+}
+
+#userInput {
+    width: 100%;
+    padding: 15px;
+    background: rgba(0, 255, 242, 0.1);
+    border: 2px solid #00fff2;
+    border-radius: 8px;
+    color: #00fff2;
+    font-size: 1.2em;
+    text-align: center;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+#userInput:focus {
+    box-shadow: 0 0 20px rgba(0, 255, 242, 0.3);
+}
+
+#userInput::placeholder {
+    color: rgba(0, 255, 242, 0.5);
+}
+
+/* Typewriter display */
+.typewriter-container {
+    width: 80%;
+    max-width: 800px;
+    min-height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem 0;
+    position: relative;
+    perspective: 1000px;
+}
+
+.typewriter-text {
+    font-size: 2.5em;
+    text-align: center;
+    line-height: 1.4;
+    word-wrap: break-word;
+    transition: color 0.3s ease;
+}
+
+.cursor {
+    display: inline-block;
+    width: 3px;
+    height: 1.2em;
+    margin-left: 5px;
+    animation: blink 1s infinite;
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 2rem;
+    z-index: 1;
+}
+
+.controls button {
+    padding: 12px 24px;
+    background: transparent;
+    color: #00fff2;
+    border: 2px solid #00fff2;
+    border-radius: 5px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 5px #00fff2;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.controls button:hover {
+    background: #00fff2;
+    color: #000;
+    box-shadow: 0 0 20px #00fff2;
+}
+
+/* Home button - matching your style */
+.home-button {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    padding: 12px 24px;
+    background: transparent;
+    color: #00fff2;
+    text-decoration: none;
+    border: 2px solid #00fff2;
+    border-radius: 5px;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 10px #00fff2;
+    box-shadow: 0 0 15px rgba(0, 255, 242, 0.1);
+    z-index: 100;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.home-button:hover {
+    background: #00fff2;
+    color: #000;
+    box-shadow: 0 0 20px #00fff2;
+}
+
+/* Effects */
+.ripple {
+    position: absolute;
+    border: 2px solid;
+    border-radius: 50%;
+    animation: rippleEffect 1s linear;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Color classes for dynamic text */
+.rainbow-text {
+    animation: rainbowCycle 5s linear infinite;
+}
+
+.neon-blue { color: #00fff2; text-shadow: 0 0 15px #00fff2; }
+.neon-purple { color: #ff00ff; text-shadow: 0 0 15px #ff00ff; }
+.neon-red { color: #ff0000; text-shadow: 0 0 15px #ff0000; }
+.neon-green { color: #00ff00; text-shadow: 0 0 15px #00ff00; }
+.neon-yellow { color: #ffff00; text-shadow: 0 0 15px #ffff00; }
+
+/* Animations */
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+@keyframes rippleEffect {
+    0% {
+        width: 0px;
+        height: 0px;
+        opacity: 0.5;
+    }
+    100% {
+        width: 500px;
+        height: 500px;
+        opacity: 0;
+    }
+}
+
+@keyframes rainbowCycle {
+    0% { color: #ff0000; text-shadow: 0 0 15px #ff0000; }
+    20% { color: #ff00ff; text-shadow: 0 0 15px #ff00ff; }
+    40% { color: #00ff00; text-shadow: 0 0 15px #00ff00; }
+    60% { color: #00fff2; text-shadow: 0 0 15px #00fff2; }
+    80% { color: #ffff00; text-shadow: 0 0 15px #ffff00; }
+    100% { color: #ff0000; text-shadow: 0 0 15px #ff0000; }
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+    100% { transform: translateY(0px); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .typewriter-text {
+        font-size: 2em;
+    }
+    .input-container {
+        width: 90%;
+    }
+    .controls {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .controls button {
+        flex: 1;
+        min-width: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .typewriter-text {
+        font-size: 1.5em;
+    }
+}

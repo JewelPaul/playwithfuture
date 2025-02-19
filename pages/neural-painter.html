@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Neural Painter - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #111;
+            font-family: monospace;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #neural-ui {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(0,0,0,0.7);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,255,255,0.2);
+        }
+
+        .n-slider {
+            width: 200px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(0,255,255,0.1);
+            height: 5px;
+            border-radius: 5px;
+        }
+
+        .n-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: cyan;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .n-label {
+            color: cyan;
+            font-size: 14px;
+            text-shadow: 0 0 5px cyan;
+        }
+
+        #neurons {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            color: cyan;
+            font-size: 14px;
+            text-shadow: 0 0 5px cyan;
+        }
+
+        .mode-btn {
+            background: rgba(0,255,255,0.1);
+            color: cyan;
+            border: 1px solid rgba(0,255,255,0.3);
+            padding: 8px 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-btn:hover {
+            background: rgba(0,255,255,0.2);
+            transform: translateX(5px);
+        }
+
+        #thought {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: cyan;
+            font-size: 16px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div id="neural-ui">
+        <div>
+            <div class="n-label">Neuron Complexity</div>
+            <input type="range" class="n-slider" id="complexity" min="1" max="10" value="5">
+        </div>
+        <div>
+            <div class="n-label">Synapse Strength</div>
+            <input type="range" class="n-slider" id="strength" min="1" max="100" value="50">
+        </div>
+        <div>
+            <div class="n-label">Thought Speed</div>
+            <input type="range" class="n-slider" id="speed" min="1" max="20" value="10">
+        </div>
+        <button class="mode-btn" onclick="toggleMode()">Switch Mode</button>
+        <button class="mode-btn" onclick="clearThoughts()">Clear</button>
+    </div>
+
+    <div id="neurons">Active Neurons: 0</div>
+    <div id="thought">Thinking...</div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const neuronsDisplay = document.getElementById('neurons');
+        const thoughtDisplay = document.getElementById('thought');
+        const complexitySlider = document.getElementById('complexity');
+        const strengthSlider = document.getElementById('strength');
+        const speedSlider = document.getElementById('speed');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        let neurons = [];
+        let mode = 'think';
+        let mouseX = 0;
+        let mouseY = 0;
+        let time = 0;
+
+        const thoughts = [
+            "Processing neural patterns...",
+            "Analyzing synaptic connections...",
+            "Generating creative impulses...",
+            "Synchronizing neural networks...",
+            "Exploring consciousness patterns...",
+            "Detecting emergent behaviors...",
+            "Mapping neural pathways...",
+            "Synthesizing new ideas..."
+        ];
+
+        class Neuron {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.connections = [];
+                this.activity = 0;
+                this.baseSize = Math.random() * 4 + 2;
+                this.color = `hsl(${180 + Math.random() * 60}, 100%, 50%)`;
+                this.thought = Math.random();
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+            }
+
+            connect(other) {
+                if (Math.random() < 0.1) {
+                    this.connections.push(other);
+                }
+            }
+
+            update() {
+                const complexity = complexitySlider.value / 5;
+                const strength = strengthSlider.value / 50;
+                const speed = speedSlider.value / 10;
+
+                this.thought += speed * 0.01;
+                this.activity = Math.sin(this.thought) * 0.5 + 0.5;
+
+                if (mode === 'think') {
+                    // Organic movement
+                    this.x += Math.sin(this.thought * complexity) * strength;
+                    this.y += Math.cos(this.thought * complexity) * strength;
+                } else {
+                    // Flow towards mouse
+                    const dx = mouseX - this.x;
+                    const dy = mouseY - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 200) {
+                        this.x += dx * 0.01 * strength;
+                        this.y += dy * 0.01 * strength;
+                    }
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vx *= 0.99;
+                    this.vy *= 0.99;
+                }
+
+                // Keep within bounds
+                this.x = (this.x + width) % width;
+                this.y = (this.y + height) % height;
+            }
+
+            draw() {
+                // Draw connections
+                this.connections.forEach(other => {
+                    const activity = (this.activity + other.activity) / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(other.x, other.y);
+                    ctx.strokeStyle = `hsla(180, 100%, 50%, ${activity * 0.2})`;
+                    ctx.lineWidth = activity * 2;
+                    ctx.stroke();
+                });
+
+                // Draw neuron
+                const size = this.baseSize + this.activity * 4;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+
+                // Draw glow
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, size * 2, 0, Math.PI * 2);
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, size,
+                    this.x, this.y, size * 2
+                );
+                gradient.addColorStop(0, `hsla(180, 100%, 50%, ${this.activity * 0.5})`);
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+        }
+
+        function createNeuralNetwork() {
+            neurons = [];
+            const count = 100;
+            
+            // Create neurons
+            for (let i = 0; i < count; i++) {
+                neurons.push(new Neuron(
+                    Math.random() * width,
+                    Math.random() * height
+                ));
+            }
+
+            // Create connections
+            neurons.forEach(neuron => {
+                neurons.forEach(other => {
+                    if (neuron !== other) {
+                        neuron.connect(other);
+                    }
+                });
+            });
+        }
+
+        function toggleMode() {
+            mode = mode === 'think' ? 'flow' : 'think';
+        }
+
+        function clearThoughts() {
+            createNeuralNetwork();
+        }
+
+        function showRandomThought() {
+            if (Math.random() < 0.01) {
+                thoughtDisplay.textContent = thoughts[Math.floor(Math.random() * thoughts.length)];
+                thoughtDisplay.style.opacity = 1;
+                setTimeout(() => {
+                    thoughtDisplay.style.opacity = 0;
+                }, 2000);
+            }
+        }
+
+        function animate() {
+            time += 0.01;
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(0, 0, width, height);
+
+            neurons.forEach(neuron => {
+                neuron.update();
+                neuron.draw();
+            });
+
+            showRandomThought();
+            neuronsDisplay.textContent = `Active Neurons: ${neurons.length}`;
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        createNeuralNetwork();
+        animate();
+    </script>
+</body>
+</html>

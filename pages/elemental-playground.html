@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Elemental Playground - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: 'Arial', sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .controls {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .element-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.3s;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .water-btn {
+            background: linear-gradient(45deg, #006994, #39c8ff);
+            box-shadow: 0 0 20px rgba(57, 200, 255, 0.3);
+        }
+
+        .fire-btn {
+            background: linear-gradient(45deg, #ff4400, #ff8800);
+            box-shadow: 0 0 20px rgba(255, 68, 0, 0.3);
+        }
+
+        .mud-btn {
+            background: linear-gradient(45deg, #654321, #967969);
+            box-shadow: 0 0 20px rgba(101, 67, 33, 0.3);
+        }
+
+        .element-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.2);
+        }
+
+        .element-btn:active {
+            transform: translateY(1px);
+        }
+
+        #info {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            color: white;
+            font-size: 16px;
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        #size-control {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 10px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            outline: none;
+        }
+
+        #size-control::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button class="element-btn water-btn" onclick="setElement('water')">Water</button>
+        <button class="element-btn fire-btn" onclick="setElement('fire')">Fire</button>
+        <button class="element-btn mud-btn" onclick="setElement('mud')">Mud</button>
+    </div>
+
+    <div id="info">
+        FPS: <span id="fps">0</span><br>
+        Particles: <span id="particle-count">0</span>
+    </div>
+
+    <input type="range" id="size-control" min="5" max="50" value="20">
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const fpsDisplay = document.getElementById('fps');
+        const particleCountDisplay = document.getElementById('particle-count');
+        const sizeControl = document.getElementById('size-control');
+
+        // Set canvas size
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Initialize variables
+        let currentElement = 'water';
+        let particles = [];
+        let lastTime = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+        let isMouseDown = false;
+
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.size = parseInt(sizeControl.value);
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = 0;
+                this.life = 1;
+                this.maxLife = 1;
+                
+                switch(type) {
+                    case 'water':
+                        this.color = `hsla(200, 100%, ${60 + Math.random() * 20}%, 0.8)`;
+                        this.density = 1;
+                        break;
+                    case 'fire':
+                        this.color = `hsla(${20 + Math.random() * 20}, 100%, ${50 + Math.random() * 20}%, 0.8)`;
+                        this.density = 0.5;
+                        this.vy = -2 - Math.random() * 2;
+                        break;
+                    case 'mud':
+                        this.color = `hsla(30, ${30 + Math.random() * 20}%, ${20 + Math.random() * 20}%, 0.8)`;
+                        this.density = 2;
+                        break;
+                }
+            }
+
+            update() {
+                // Apply gravity
+                this.vy += 0.1 * this.density;
+
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounce off walls
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -0.5;
+                if (this.y > canvas.height) {
+                    this.y = canvas.height;
+                    this.vy *= -0.5;
+                }
+
+                // Element-specific behavior
+                switch(this.type) {
+                    case 'fire':
+                        this.life -= 0.01;
+                        this.size *= 0.99;
+                        break;
+                    case 'water':
+                        this.vx *= 0.99;
+                        this.vy *= 0.99;
+                        break;
+                    case 'mud':
+                        this.vx *= 0.95;
+                        this.vy *= 0.95;
+                        break;
+                }
+
+                // Particle interactions
+                particles.forEach(p => {
+                    if (p !== this) {
+                        const dx = p.x - this.x;
+                        const dy = p.y - this.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < this.size + p.size) {
+                            // Element interactions
+                            if (this.type === 'fire' && p.type === 'water') {
+                                this.life -= 0.1;
+                                p.life -= 0.1;
+                                createSteam(this.x, this.y);
+                            }
+                            if (this.type === 'water' && p.type === 'mud') {
+                                p.size += 0.1;
+                            }
+                        }
+                    }
+                });
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (this.type === 'fire') {
+                    ctx.shadowColor = 'orange';
+                    ctx.shadowBlur = 20;
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+            }
+        }
+
+        function createSteam(x, y) {
+            for (let i = 0; i < 3; i++) {
+                particles.push(new Particle(x, y, 'steam'));
+            }
+        }
+
+        function setElement(element) {
+            currentElement = element;
+        }
+
+        canvas.addEventListener('mousedown', () => isMouseDown = true);
+        canvas.addEventListener('mouseup', () => isMouseDown = false);
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            
+            if (isMouseDown) {
+                for (let i = 0; i < 3; i++) {
+                    particles.push(new Particle(
+                        mouseX + (Math.random() - 0.5) * 20,
+                        mouseY + (Math.random() - 0.5) * 20,
+                        currentElement
+                    ));
+                }
+            }
+        });
+
+        function animate(time) {
+            // Calculate FPS
+            const fps = Math.round(1000 / (time - lastTime));
+            lastTime = time;
+            fpsDisplay.textContent = fps;
+            particleCountDisplay.textContent = particles.length;
+
+            // Clear canvas
+            ctx.fillStyle = 'rgba(26,26,26,0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw particles
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate(0);
+    </script>
+</body>
+</html>

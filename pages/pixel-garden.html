@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pixel Garden - TimePassIndia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f0f7f4;
+            font-family: 'Nunito', sans-serif;
+            color: #2c4a3e;
+            min-height: 100vh;
+        }
+
+        .garden-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .resources {
+            display: flex;
+            gap: 20px;
+        }
+
+        .resource {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.2em;
+        }
+
+        .garden-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 10px;
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .plot {
+            aspect-ratio: 1;
+            background: #8b5e3c;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .plot:hover {
+            transform: translateY(-2px);
+        }
+
+        .plot.empty::after {
+            content: '';
+            width: 60%;
+            height: 60%;
+            background: #6d4c2f;
+            border-radius: 4px;
+        }
+
+        .plant {
+            position: absolute;
+            transition: all 0.3s;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .growth-indicator {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .growth-bar {
+            height: 100%;
+            background: #4caf50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .toolbar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .seed-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: #f5f5f5;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .seed-btn:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .seed-btn.selected {
+            background: #4caf50;
+            color: white;
+        }
+
+        .achievement {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .weather {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .rain {
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background: rgba(255,255,255,0.6);
+            animation: rain 1s linear infinite;
+        }
+
+        @keyframes rain {
+            from { transform: translateY(-10px); }
+            to { transform: translateY(100vh); opacity: 0; }
+        }
+
+        .butterfly {
+            position: absolute;
+            font-size: 1.5em;
+            animation: fly 20s linear infinite;
+            z-index: 3;
+        }
+
+        @keyframes fly {
+            0% { transform: translate(-100px, 50vh) rotate(0deg); }
+            50% { transform: translate(100vw, 20vh) rotate(20deg); }
+            100% { transform: translate(-100px, 50vh) rotate(0deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="garden-container">
+        <div class="top-bar">
+            <div class="resources">
+                <div class="resource">🌱 Seeds: <span id="seeds">10</span></div>
+                <div class="resource">💧 Water: <span id="water">20</span></div>
+                <div class="resource">🌟 Points: <span id="points">0</span></div>
+            </div>
+            <div class="resource">☀️ Day: <span id="day">1</span></div>
+        </div>
+
+        <div class="toolbar" id="toolbar">
+            <button class="seed-btn" onclick="selectSeed('🌷')">
+                🌷 Tulip
+                <span>5 seeds</span>
+            </button>
+            <button class="seed-btn" onclick="selectSeed('🌻')">
+                🌻 Sunflower
+                <span>8 seeds</span>
+            </button>
+            <button class="seed-btn" onclick="selectSeed('🌺')">
+                🌺 Hibiscus
+                <span>12 seeds</span>
+            </button>
+            <button class="seed-btn" onclick="selectSeed('🌹')">
+                🌹 Rose
+                <span>15 seeds</span>
+            </button>
+        </div>
+
+        <div class="garden-grid" id="garden"></div>
+    </div>
+
+    <div class="achievement" id="achievement"></div>
+
+    <script>
+        const GRID_SIZE = 8;
+        const GROWTH_TIME = 30000; // 30 seconds per plant
+        let selectedSeed = null;
+        let resources = {
+            seeds: 10,
+            water: 20,
+            points: 0,
+            day: 1
+        };
+        
+        let plants = Array(GRID_SIZE * GRID_SIZE).fill(null);
+        let weather = 'sunny';
+
+        const plantTypes = {
+            '🌷': { cost: 5, points: 10, growthSpeed: 1 },
+            '🌻': { cost: 8, points: 15, growthSpeed: 0.8 },
+            '🌺': { cost: 12, points: 20, growthSpeed: 0.6 },
+            '🌹': { cost: 15, points: 25, growthSpeed: 0.5 }
+        };
+
+        function createGarden() {
+            const garden = document.getElementById('garden');
+            garden.innerHTML = '';
+
+            for(let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                const plot = document.createElement('div');
+                plot.className = 'plot empty';
+                plot.onclick = () => plantSeed(i);
+                
+                const growthIndicator = document.createElement('div');
+                growthIndicator.className = 'growth-indicator';
+                growthIndicator.innerHTML = '<div class="growth-bar"></div>';
+                
+                plot.appendChild(growthIndicator);
+                garden.appendChild(plot);
+            }
+        }
+
+        function selectSeed(type) {
+            selectedSeed = type;
+            document.querySelectorAll('.seed-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.textContent.includes(type));
+            });
+        }
+
+        function plantSeed(index) {
+            if (!selectedSeed || plants[index] || resources.seeds < plantTypes[selectedSeed].cost) {
+                return;
+            }
+
+            resources.seeds -= plantTypes[selectedSeed].cost;
+            updateResources();
+
+            const plot = document.querySelectorAll('.plot')[index];
+            plot.classList.remove('empty');
+
+            const plant = document.createElement('div');
+            plant.className = 'plant';
+            plant.textContent = selectedSeed;
+            plant.style.fontSize = '0.5em';
+            plot.appendChild(plant);
+
+            const growthBar = plot.querySelector('.growth-bar');
+            const growthTime = GROWTH_TIME / plantTypes[selectedSeed].growthSpeed;
+            let growth = 0;
+
+            plants[index] = {
+                type: selectedSeed,
+                growth: 0,
+                interval: setInterval(() => {
+                    growth += (weather === 'rainy' ? 2 : 1);
+                    if (growth >= 100) {
+                        clearInterval(plants[index].interval);
+                        harvestPlant(index);
+                    } else {
+                        plants[index].growth = growth;
+                        growthBar.style.width = `${growth}%`;
+                        plant.style.fontSize = `${0.5 + (growth/100) * 1.5}em`;
+                    }
+                }, growthTime / 100)
+            };
+        }
+
+        function harvestPlant(index) {
+            const plant = plants[index];
+            const plot = document.querySelectorAll('.plot')[index];
+            
+            resources.points += plantTypes[plant.type].points;
+            resources.seeds += Math.floor(plantTypes[plant.type].cost * 1.5);
+            
+            showAchievement(`Harvested ${plant.type}! +${plantTypes[plant.type].points} points`);
+            
+            plot.innerHTML = '';
+            plot.className = 'plot empty';
+            const growthIndicator = document.createElement('div');
+            growthIndicator.className = 'growth-indicator';
+            growthIndicator.innerHTML = '<div class="growth-bar"></div>';
+            plot.appendChild(growthIndicator);
+            
+            plants[index] = null;
+            updateResources();
+        }
+
+        function showAchievement(text) {
+            const achievement = document.getElementById('achievement');
+            achievement.textContent = text;
+            achievement.style.opacity = 1;
+            setTimeout(() => achievement.style.opacity = 0, 3000);
+        }
+
+        function updateResources() {
+            document.getElementById('seeds').textContent = resources.seeds;
+            document.getElementById('water').textContent = resources.water;
+            document.getElementById('points').textContent = resources.points;
+            document.getElementById('day').textContent = resources.day;
+        }
+
+        function changeWeather() {
+            weather = Math.random() < 0.3 ? 'rainy' : 'sunny';
+            if(weather === 'rainy') {
+                createRain();
+            } else {
+                document.querySelectorAll('.rain').forEach(drop => drop.remove());
+            }
+        }
+
+        function createRain() {
+            const drops = 100;
+            for(let i = 0; i < drops; i++) {
+                const drop = document.createElement('div');
+                drop.className = 'rain';
+                drop.style.left = `${Math.random() * 100}%`;
+                drop.style.animationDelay = `${Math.random() * 2}s`;
+                document.body.appendChild(drop);
+            }
+        }
+
+        function addButterfly() {
+            const butterfly = document.createElement('div');
+            butterfly.className = 'butterfly';
+            butterfly.textContent = '🦋';
+            document.body.appendChild(butterfly);
+            setTimeout(() => butterfly.remove(), 20000);
+        }
+
+        // Initialize game
+        createGarden();
+        setInterval(changeWeather, 30000);
+        setInterval(addButterfly, 45000);
+        setInterval(() => {
+            resources.day++;
+            resources.water = Math.min(resources.water + 5, 50);
+            updateResources();
+        }, 60000);
+    </script>
+</body>
+</html>

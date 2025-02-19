@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Word Blender</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+
+        #blender-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 400px;
+            perspective: 1000px;
+        }
+
+        #blender {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: spin 5s infinite linear;
+        }
+
+        #input-area {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 100;
+        }
+
+        #word-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #fff;
+            color: #fff;
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 5px;
+            width: 300px;
+            text-align: center;
+            font-family: inherit;
+        }
+
+        .letter {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            transform-style: preserve-3d;
+            transition: all 0.5s ease-out;
+        }
+
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #particle-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button onclick="changeBlendMode('spiral')">Spiral</button>
+        <button onclick="changeBlendMode('explode')">Explode</button>
+        <button onclick="changeBlendMode('vortex')">Vortex</button>
+        <button onclick="toggleRainbow()">Toggle Rainbow</button>
+    </div>
+
+    <div id="blender-container">
+        <div id="blender"></div>
+    </div>
+
+    <div id="particle-container"></div>
+
+    <div id="input-area">
+        <input type="text" 
+               id="word-input" 
+               placeholder="Type a word to blend..."
+               maxlength="20"
+               autocomplete="off">
+    </div>
+
+    <script>
+        const blender = document.getElementById('blender');
+        const input = document.getElementById('word-input');
+        const particleContainer = document.getElementById('particle-container');
+        let letters = [];
+        let blendMode = 'spiral';
+        let isRainbow = false;
+        let animationFrame;
+
+        class Letter {
+            constructor(char) {
+                this.element = document.createElement('div');
+                this.element.className = 'letter';
+                this.element.textContent = char;
+                this.angle = Math.random() * Math.PI * 2;
+                this.radius = 100;
+                this.speed = 0.02 + Math.random() * 0.02;
+                this.offset = Math.random() * Math.PI * 2;
+                this.position = { x: 0, y: 0, z: 0 };
+                this.velocity = {
+                    x: (Math.random() - 0.5) * 10,
+                    y: (Math.random() - 0.5) * 10,
+                    z: (Math.random() - 0.5) * 10
+                };
+            }
+
+            update(time) {
+                switch(blendMode) {
+                    case 'spiral':
+                        this.updateSpiral(time);
+                        break;
+                    case 'explode':
+                        this.updateExplode();
+                        break;
+                    case 'vortex':
+                        this.updateVortex(time);
+                        break;
+                }
+
+                if(isRainbow) {
+                    const hue = (time * 50 + this.offset * 30) % 360;
+                    this.element.style.color = `hsl(${hue}, 100%, 50%)`;
+                    this.element.style.textShadow = `0 0 10px hsl(${hue}, 100%, 50%)`;
+                } else {
+                    this.element.style.color = '#fff';
+                    this.element.style.textShadow = '0 0 10px #fff';
+                }
+            }
+
+            updateSpiral(time) {
+                this.angle += this.speed;
+                this.position.x = Math.cos(this.angle) * this.radius;
+                this.position.y = Math.sin(this.angle) * this.radius;
+                this.position.z = Math.sin(time * 2 + this.offset) * 50;
+                
+                this.updateTransform();
+            }
+
+            updateExplode() {
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+                this.position.z += this.velocity.z;
+                
+                this.updateTransform();
+            }
+
+            updateVortex(time) {
+                const vortexAngle = time * 2 + this.offset;
+                this.position.x = Math.cos(vortexAngle) * (this.radius + this.position.z);
+                this.position.y = Math.sin(vortexAngle) * (this.radius + this.position.z);
+                this.position.z = Math.cos(time + this.offset) * 100;
+                
+                this.updateTransform();
+            }
+
+            updateTransform() {
+                this.element.style.transform = `translate3d(${this.position.x}px, ${this.position.y}px, ${this.position.z}px)`;
+            }
+        }
+
+        function createLetters(word) {
+            // Clear existing letters
+            letters.forEach(letter => letter.element.remove());
+            letters = [];
+            blender.innerHTML = '';
+
+            // Create new letters
+            word.split('').forEach(char => {
+                const letter = new Letter(char);
+                letters.push(letter);
+                blender.appendChild(letter.element);
+            });
+        }
+
+        function animate() {
+            const time = Date.now() / 1000;
+            letters.forEach(letter => letter.update(time));
+            animationFrame = requestAnimationFrame(animate);
+        }
+
+        function changeBlendMode(mode) {
+            blendMode = mode;
+            if(mode === 'explode') {
+                letters.forEach(letter => {
+                    letter.velocity = {
+                        x: (Math.random() - 0.5) * 10,
+                        y: (Math.random() - 0.5) * 10,
+                        z: (Math.random() - 0.5) * 10
+                    };
+                });
+            }
+        }
+
+        function toggleRainbow() {
+            isRainbow = !isRainbow;
+        }
+
+        input.addEventListener('input', (e) => {
+            createLetters(e.target.value);
+        });
+
+        // Start with a default word
+        createLetters('BLEND');
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cursor Eclipse - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            cursor: none;
+        }
+
+        #sun {
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(#ff8800, #ff4400);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 100px #ff4400;
+            z-index: 1;
+        }
+
+        #cursor {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            background: #001133;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            box-shadow: 0 0 20px #001133;
+        }
+
+        #corona {
+            position: fixed;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 10;
+        }
+
+        button {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+
+        #eclipse-meter {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-family: monospace;
+            font-size: 24px;
+            text-shadow: 0 0 10px #fff;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="sun"></div>
+    <div id="cursor"></div>
+    <canvas id="corona"></canvas>
+    <div id="eclipse-meter">Eclipse: 0%</div>
+    <div id="controls">
+        <button onclick="changeSunColor('normal')">Normal Sun</button>
+        <button onclick="changeSunColor('blue')">Blue Giant</button>
+        <button onclick="changeSunColor('red')">Red Dwarf</button>
+    </div>
+
+    <script>
+        const sun = document.getElementById('sun');
+        const cursor = document.getElementById('cursor');
+        const corona = document.getElementById('corona');
+        const eclipseMeter = document.getElementById('eclipse-meter');
+        const ctx = corona.getContext('2d');
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let sunX = window.innerWidth / 2;
+        let sunY = window.innerHeight / 2;
+        let stars = [];
+        let currentSunColor = 'normal';
+
+        // Setup corona canvas
+        function resizeCorona() {
+            corona.width = window.innerWidth;
+            corona.height = window.innerHeight;
+        }
+        resizeCorona();
+        window.addEventListener('resize', resizeCorona);
+
+        // Create stars
+        function createStars() {
+            stars = [];
+            for (let i = 0; i < 200; i++) {
+                stars.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    size: Math.random() * 2,
+                    twinkle: Math.random()
+                });
+            }
+        }
+        createStars();
+
+        function drawStars() {
+            stars.forEach(star => {
+                star.twinkle += 0.05;
+                const opacity = (Math.sin(star.twinkle) + 1) / 2;
+                ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawCorona() {
+            ctx.clearRect(0, 0, corona.width, corona.height);
+            
+            // Draw stars
+            drawStars();
+
+            // Calculate eclipse coverage
+            const dx = mouseX - sunX;
+            const dy = mouseY - sunY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const coverage = Math.max(0, Math.min(100, (1 - distance / 100) * 100));
+            eclipseMeter.textContent = `Eclipse: ${Math.round(coverage)}%`;
+
+            // Draw corona effect
+            if (coverage > 50) {
+                const gradient = ctx.createRadialGradient(sunX, sunY, 90, sunX, sunY, 200);
+                let coronaColor;
+                switch(currentSunColor) {
+                    case 'blue':
+                        coronaColor = '#00ffff';
+                        break;
+                    case 'red':
+                        coronaColor = '#ff6666';
+                        break;
+                    default:
+                        coronaColor = '#ffddaa';
+                }
+                gradient.addColorStop(0, `${coronaColor}44`);
+                gradient.addColorStop(1, 'transparent');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(sunX, sunY, 200, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw corona rays
+                const rayCount = 12;
+                for (let i = 0; i < rayCount; i++) {
+                    const angle = (i / rayCount) * Math.PI * 2 + Date.now() / 1000;
+                    const length = 150 + Math.sin(Date.now() / 1000 + i) * 50;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(sunX, sunY);
+                    ctx.lineTo(
+                        sunX + Math.cos(angle) * length,
+                        sunY + Math.sin(angle) * length
+                    );
+                    ctx.strokeStyle = `${coronaColor}22`;
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function changeSunColor(color) {
+            currentSunColor = color;
+            switch(color) {
+                case 'blue':
+                    sun.style.background = 'radial-gradient(#adf, #48f)';
+                    sun.style.boxShadow = '0 0 100px #48f';
+                    break;
+                case 'red':
+                    sun.style.background = 'radial-gradient(#faa, #f44)';
+                    sun.style.boxShadow = '0 0 100px #f44';
+                    break;
+                default:
+                    sun.style.background = 'radial-gradient(#ff8800, #ff4400)';
+                    sun.style.boxShadow = '0 0 100px #ff4400';
+            }
+        }
+
+        // Animation loop
+        function animate() {
+            // Update sun position with smooth follow
+            sunX += (mouseX - sunX) * 0.1;
+            sunY += (mouseY - sunY) * 0.1;
+            
+            sun.style.left = sunX + 'px';
+            sun.style.top = sunY + 'px';
+            
+            drawCorona();
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse movement
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursor.style.left = mouseX + 'px';
+            cursor.style.top = mouseY + 'px';
+        });
+
+        animate();
+    </script>
+</body>
+</html>

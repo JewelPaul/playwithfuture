@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Pong - TimePassIndia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/games/neon-pong.css">
+</head>
+<body>
+    <div class="time-overlay" id="timeDisplay">2025-02-06 16:03:44</div>
+    
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="score-container">
+            <div id="player-score">0</div>
+            <div id="ai-score">0</div>
+        </div>
+        <div id="start-screen">
+            <h1>NEON PONG</h1>
+            <button id="start-button">START GAME</button>
+            <div class="controls">
+                <p>Use ↑ UP and ↓ DOWN arrows to move</p>
+                <p>First to 5 points wins!</p>
+            </div>
+        </div>
+        <div id="win-screen" class="hidden">
+            <h2 id="win-message"></h2>
+            <button id="restart-button">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <a href="../index.html" class="home-button">Home</a>
+
+    <script src="../scripts/utils/time.js"></script>
+    <script src="../scripts/games/neon-pong.js"></script>
+</body>
+</html>

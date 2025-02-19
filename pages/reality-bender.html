@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reality Bender - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: monospace;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        button:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateX(5px);
+        }
+
+        #stats {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            font-size: 14px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button onclick="setMode('ripple')">Ripple Reality</button>
+        <button onclick="setMode('twist')">Reality Twist</button>
+        <button onclick="setMode('shatter')">Reality Shatter</button>
+        <button onclick="setMode('melt')">Reality Melt</button>
+        <button onclick="resetReality()">Reset Reality</button>
+    </div>
+    <div id="stats">
+        Reality Distortion: <span id="distortion">0%</span><br>
+        Stability: <span id="stability">100%</span>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const distortionDisplay = document.getElementById('distortion');
+        const stabilityDisplay = document.getElementById('stability');
+
+        let width, height;
+        let mode = 'ripple';
+        let distortion = 0;
+        let stability = 100;
+        let points = [];
+        let mouseX = 0;
+        let mouseY = 0;
+        let time = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initializePoints();
+        }
+
+        function initializePoints() {
+            points = [];
+            const gridSize = 30;
+            for(let x = 0; x < width; x += gridSize) {
+                for(let y = 0; y < height; y += gridSize) {
+                    points.push({
+                        x: x,
+                        y: y,
+                        baseX: x,
+                        baseY: y,
+                        vx: 0,
+                        vy: 0,
+                        color: `hsl(${Math.random() * 360}, 50%, 50%)`,
+                        size: gridSize - 2,
+                        distortion: 0
+                    });
+                }
+            }
+        }
+
+        function setMode(newMode) {
+            mode = newMode;
+            distortion = Math.min(distortion + 10, 100);
+            stability = Math.max(stability - 5, 0);
+            updateStats();
+        }
+
+        function resetReality() {
+            distortion = Math.max(distortion - 20, 0);
+            stability = Math.min(stability + 10, 100);
+            points.forEach(p => {
+                p.vx *= 0.5;
+                p.vy *= 0.5;
+                p.distortion *= 0.5;
+            });
+            updateStats();
+        }
+
+        function updateStats() {
+            distortionDisplay.textContent = `${Math.round(distortion)}%`;
+            stabilityDisplay.textContent = `${Math.round(stability)}%`;
+        }
+
+        function applyRipple(point) {
+            const dx = point.x - mouseX;
+            const dy = point.y - mouseY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const maxForce = 1000;
+            if(distance < maxForce) {
+                const force = (1 - distance / maxForce) * distortion / 10;
+                point.vx += dx * force;
+                point.vy += dy * force;
+            }
+        }
+
+        function applyTwist(point) {
+            const dx = point.x - width / 2;
+            const dy = point.y - height / 2;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) + distortion / 1000;
+            point.vx += Math.cos(angle) * distance * 0.01;
+            point.vy += Math.sin(angle) * distance * 0.01;
+        }
+
+        function applyShatter(point) {
+            if(Math.random() < distortion / 1000) {
+                point.vx += (Math.random() - 0.5) * distortion;
+                point.vy += (Math.random() - 0.5) * distortion;
+                point.distortion = Math.min(point.distortion + 1, 100);
+            }
+        }
+
+        function applyMelt(point) {
+            point.vy += distortion / 100;
+            point.vx += Math.sin(point.y / 50 + time) * distortion / 100;
+        }
+
+        function update() {
+            time += 0.01;
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(0, 0, width, height);
+
+            points.forEach(point => {
+                switch(mode) {
+                    case 'ripple': applyRipple(point); break;
+                    case 'twist': applyTwist(point); break;
+                    case 'shatter': applyShatter(point); break;
+                    case 'melt': applyMelt(point); break;
+                }
+
+                // Apply physics
+                point.x += point.vx;
+                point.y += point.vy;
+                point.vx *= 0.95;
+                point.vy *= 0.95;
+
+                // Return to base position
+                const returnForce = stability / 1000;
+                point.vx += (point.baseX - point.x) * returnForce;
+                point.vy += (point.baseY - point.y) * returnForce;
+
+                // Draw point
+                ctx.fillStyle = point.color;
+                ctx.globalAlpha = 1 - point.distortion / 100;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, point.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            requestAnimationFrame(update);
+        }
+
+        window.addEventListener('resize', resize);
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        resize();
+        update();
+    </script>
+</body>
+</html>

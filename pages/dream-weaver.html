@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dream Weaver - TimePassIndia</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Arial', sans-serif;
+        }
+
+        canvas {
+            display: block;
+            filter: blur(1px);
+        }
+
+        .controls {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            z-index: 100;
+        }
+
+        .dream-btn {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .dream-btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        #dream-state {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            color: #fff;
+            font-size: 16px;
+            text-align: right;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        .dreamcatcher {
+            position: fixed;
+            width: 100px;
+            height: 100px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button class="dream-btn" onclick="setDreamType('peaceful')">Peaceful Dreams</button>
+        <button class="dream-btn" onclick="setDreamType('vivid')">Vivid Dreams</button>
+        <button class="dream-btn" onclick="setDreamType('cosmic')">Cosmic Dreams</button>
+        <button class="dream-btn" onclick="setDreamType('abstract')">Abstract Dreams</button>
+    </div>
+
+    <div id="dream-state">
+        Dream Intensity: <span id="intensity">0</span>%<br>
+        Dreams Caught: <span id="caught">0</span>
+    </div>
+
+    <div class="dreamcatcher" id="dreamcatcher"></div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dreamcatcher = document.getElementById('dreamcatcher');
+        const intensityDisplay = document.getElementById('intensity');
+        const caughtDisplay = document.getElementById('caught');
+
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        let dreamType = 'peaceful';
+        let intensity = 0;
+        let dreamsCaught = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+        let time = 0;
+        let dreams = [];
+
+        class Dream {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.size = Math.random() * 50 + 20;
+                this.color = this.getColor();
+                this.speed = Math.random() * 2 + 1;
+                this.angle = Math.random() * Math.PI * 2;
+                this.spin = (Math.random() - 0.5) * 0.1;
+                this.caught = false;
+                this.opacity = 1;
+                this.trail = [];
+            }
+
+            getColor() {
+                switch(this.type) {
+                    case 'peaceful':
+                        return `hsl(${180 + Math.random() * 60}, 70%, 70%)`;
+                    case 'vivid':
+                        return `hsl(${Math.random() * 360}, 100%, 60%)`;
+                    case 'cosmic':
+                        return `hsl(${270 + Math.random() * 60}, 80%, 60%)`;
+                    case 'abstract':
+                        return `hsl(${time * 10 % 360}, 70%, 60%)`;
+                }
+            }
+
+            update() {
+                if (!this.caught) {
+                    this.trail.push({x: this.x, y: this.y});
+                    if (this.trail.length > 20) this.trail.shift();
+
+                    this.x += Math.cos(this.angle) * this.speed;
+                    this.y += Math.sin(this.angle) * this.speed;
+                    this.angle += this.spin;
+
+                    // Check if caught by dreamcatcher
+                    const dx = this.x - mouseX;
+                    const dy = this.y - mouseY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 50) {
+                        this.caught = true;
+                        dreamsCaught++;
+                        caughtDisplay.textContent = dreamsCaught;
+                        intensity = Math.min(intensity + 5, 100);
+                        intensityDisplay.textContent = Math.round(intensity);
+                    }
+
+                    // Wrap around screen
+                    if (this.x < 0) this.x = width;
+                    if (this.x > width) this.x = 0;
+                    if (this.y < 0) this.y = height;
+                    if (this.y > height) this.y = 0;
+                } else {
+                    this.opacity *= 0.95;
+                    this.size *= 0.95;
+                }
+            }
+
+            draw() {
+                ctx.globalAlpha = this.opacity;
+                
+                // Draw trail
+                ctx.beginPath();
+                ctx.moveTo(this.trail[0]?.x, this.trail[0]?.y);
+                this.trail.forEach(point => {
+                    ctx.lineTo(point.x, point.y);
+                });
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.size / 10;
+                ctx.stroke();
+
+                // Draw dream
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (this.type === 'cosmic') {
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for (let i = 0; i < 5; i++) {
+                        const angle = this.angle + (i * Math.PI * 2 / 5);
+                        const x = this.x + Math.cos(angle) * this.size;
+                        const y = this.y + Math.sin(angle) * this.size;
+                        ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function setDreamType(type) {
+            dreamType = type;
+            createDream();
+        }
+
+        function createDream() {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            dreams.push(new Dream(x, y, dreamType));
+        }
+
+        function animate() {
+            time += 0.01;
+            ctx.fillStyle = 'rgba(0,0,0,0.1)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Update dreamcatcher position
+            dreamcatcher.style.left = mouseX + 'px';
+            dreamcatcher.style.top = mouseY + 'px';
+            dreamcatcher.style.boxShadow = `0 0 ${intensity}px ${intensity/2}px rgba(255,255,255,0.3)`;
+
+            // Create new dreams
+            if (Math.random() < 0.05) createDream();
+
+            // Update and draw dreams
+            dreams = dreams.filter(dream => dream.opacity > 0.01);
+            dreams.forEach(dream => {
+                dream.update();
+                dream.draw();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        animate();
+    </script>
+</body>
+</html>

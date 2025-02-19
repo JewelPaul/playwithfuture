@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Experience the mesmerizing Neon Typewriter at TimePassIndia - Interactive typing with neon effects">
+    <title>Neon Typewriter - TimePassIndia</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rubik:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Base styles -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+    <!-- Link to CSS in styles/games directory -->
+    <link rel="stylesheet" href="../styles/games/neon-typewriter.css">
+</head>
+<body>
+    <div class="time-overlay" id="timeDisplay"></div>
+
+    <div class="input-container">
+        <input type="text" id="userInput" placeholder="Type something..." maxlength="50" autofocus>
+    </div>
+    
+    <div class="typewriter-container">
+        <div class="typewriter-text" id="typewriterText"></div>
+        <div class="cursor"></div>
+    </div>
+
+    <div class="controls">
+        <button id="clearBtn">Clear</button>
+        <button id="randomBtn">Random Text</button>
+    </div>
+    
+    <a href="../index.html" class="home-button">HOME</a>
+
+    <!-- Link to JS files -->
+    <script src="../scripts/utils/time.js"></script>
+    <script src="../scripts/games/neon-typewriter.js"></script>
+</body>
+</html>
